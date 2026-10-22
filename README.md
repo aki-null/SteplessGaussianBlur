@@ -45,7 +45,7 @@ Adreno, Xclipse, Immortalis and Mali GPUs, texture writes and methods.
 
 ## Installation
 
-Requires Unity 6000.6.2f1 or later and URP 17.6 with RenderGraph
+Requires Unity 6000.3 or later and URP 17.3 with RenderGraph
 (Compatibility Mode off).
 
 In the Package Manager, choose **Install package from git URL**:
