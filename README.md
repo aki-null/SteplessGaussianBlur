@@ -3,7 +3,7 @@
 A Gaussian blur for URP RenderGraph that stays fast, accurate and stable
 at every strength.
 
-https://github.com/user-attachments/assets/31400975-e0a4-4aa5-9c78-b1130ca574ab
+https://github.com/user-attachments/assets/800f74d7-72c0-4280-a5a2-b39e1d6fa7ef
 
 Use it as a camera effect, inside your own RenderGraph passes, or to blur
 a texture once and reuse it.
