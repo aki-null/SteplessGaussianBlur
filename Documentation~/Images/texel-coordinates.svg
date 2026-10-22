@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="250" viewBox="0 0 560 250" role="img" aria-labelledby="title desc">
+  <title id="title">Texel coordinates</title>
+  <desc id="desc">Source texel i spans coordinates i to i plus 1 with its center at i plus 0.5. Half-resolution texel j spans 2j to 2j plus 2 with its center at 2j plus 1.</desc>
+  <style>
+    text { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #1e293b; font-size: 14px; }
+    .box { stroke: #64748b; stroke-width: 1.5; }
+    .row { font-size: 13px; font-weight: 600; fill: #334155; }
+    .sub { font-size: 12px; fill: #475569; text-anchor: middle; }
+    .idx { font-size: 13px; text-anchor: middle; fill: #334155; }
+    .axis { stroke: #94a3b8; stroke-width: 1.2; }
+    .guide { stroke: #cbd5e1; stroke-width: 1; stroke-dasharray: 3 3; }
+  </style>
+  <rect width="560" height="250" rx="8" fill="#ffffff"/>
+  <text x="20" y="44" class="row">Coordinate</text>
+  <line class="axis" x1="150" y1="40" x2="522" y2="40"/>
+  <line class="axis" x1="150" y1="35" x2="150" y2="45"/>
+  <text x="150" y="30" class="sub">0</text>
+  <line class="guide" x1="150" y1="45" x2="150" y2="230"/>
+  <line class="axis" x1="212" y1="35" x2="212" y2="45"/>
+  <text x="212" y="30" class="sub">1</text>
+  <line class="guide" x1="212" y1="45" x2="212" y2="230"/>
+  <line class="axis" x1="274" y1="35" x2="274" y2="45"/>
+  <text x="274" y="30" class="sub">2</text>
+  <line class="guide" x1="274" y1="45" x2="274" y2="230"/>
+  <line class="axis" x1="336" y1="35" x2="336" y2="45"/>
+  <text x="336" y="30" class="sub">3</text>
+  <line class="guide" x1="336" y1="45" x2="336" y2="230"/>
+  <line class="axis" x1="398" y1="35" x2="398" y2="45"/>
+  <text x="398" y="30" class="sub">4</text>
+  <line class="guide" x1="398" y1="45" x2="398" y2="230"/>
+  <line class="axis" x1="460" y1="35" x2="460" y2="45"/>
+  <text x="460" y="30" class="sub">5</text>
+  <line class="guide" x1="460" y1="45" x2="460" y2="230"/>
+  <line class="axis" x1="522" y1="35" x2="522" y2="45"/>
+  <text x="522" y="30" class="sub">6</text>
+  <line class="guide" x1="522" y1="45" x2="522" y2="230"/>
+  <text x="20" y="85" class="row">Source texel</text>
+  <rect class="box" x="150" y="62" width="62" height="34" fill="#eff6ff"/>
+  <text x="181" y="84" class="idx">i = 0</text>
+  <circle cx="181" cy="110" r="4" fill="#087f5b"/>
+  <text x="181" y="130" class="sub">0.5</text>
+  <rect class="box" x="212" y="62" width="62" height="34" fill="#eff6ff"/>
+  <text x="243" y="84" class="idx">i = 1</text>
+  <circle cx="243" cy="110" r="4" fill="#087f5b"/>
+  <text x="243" y="130" class="sub">1.5</text>
+  <rect class="box" x="274" y="62" width="62" height="34" fill="#eff6ff"/>
+  <text x="305" y="84" class="idx">i = 2</text>
+  <circle cx="305" cy="110" r="4" fill="#087f5b"/>
+  <text x="305" y="130" class="sub">2.5</text>
+  <rect class="box" x="336" y="62" width="62" height="34" fill="#eff6ff"/>
+  <text x="367" y="84" class="idx">i = 3</text>
+  <circle cx="367" cy="110" r="4" fill="#087f5b"/>
+  <text x="367" y="130" class="sub">3.5</text>
+  <rect class="box" x="398" y="62" width="62" height="34" fill="#eff6ff"/>
+  <text x="429" y="84" class="idx">i = 4</text>
+  <circle cx="429" cy="110" r="4" fill="#087f5b"/>
+  <text x="429" y="130" class="sub">4.5</text>
+  <rect class="box" x="460" y="62" width="62" height="34" fill="#eff6ff"/>
+  <text x="491" y="84" class="idx">i = 5</text>
+  <circle cx="491" cy="110" r="4" fill="#087f5b"/>
+  <text x="491" y="130" class="sub">5.5</text>
+  <text x="20" y="114" class="sub" text-anchor="start" style="text-anchor:start">center</text>
+  <text x="20" y="175" class="row">Half-res texel</text>
+  <rect class="box" x="150" y="152" width="124" height="34" fill="#f0fdf4"/>
+  <text x="212" y="174" class="idx">j = 0</text>
+  <circle cx="212" cy="200" r="4" fill="#087f5b"/>
+  <text x="212" y="220" class="sub">1</text>
+  <rect class="box" x="274" y="152" width="124" height="34" fill="#f0fdf4"/>
+  <text x="336" y="174" class="idx">j = 1</text>
+  <circle cx="336" cy="200" r="4" fill="#087f5b"/>
+  <text x="336" y="220" class="sub">3</text>
+  <rect class="box" x="398" y="152" width="124" height="34" fill="#f0fdf4"/>
+  <text x="460" y="174" class="idx">j = 2</text>
+  <circle cx="460" cy="200" r="4" fill="#087f5b"/>
+  <text x="460" y="220" class="sub">5</text>
+  <text x="20" y="204" class="sub" text-anchor="start" style="text-anchor:start">center</text>
+</svg>

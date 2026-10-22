@@ -1,0 +1,253 @@
+{
+  "skiaCommit": "15a9437eec871d9a90a91514e368c5a6cb29bb4b",
+  "gpu": "Apple M4",
+  "identityChecks": 16,
+  "responses": 560,
+  "strengths": [
+    {
+      "sigma": 0.25001001358032227,
+      "gaussianErrorMax": 0.01235542714478606,
+      "portDifferenceMax": 2.6775524020195007e-06,
+      "energyErrorMin": -0.012350082397460938,
+      "energyErrorMax": -0.012350082397460938
+    },
+    {
+      "sigma": 0.30000001192092896,
+      "gaussianErrorMax": 0.015044389661097963,
+      "portDifferenceMax": 0.04959404468536377,
+      "energyErrorMin": 0.015044212341308594,
+      "energyErrorMax": 0.015044212341308594
+    },
+    {
+      "sigma": 0.3499999940395355,
+      "gaussianErrorMax": 0.02152919769286105,
+      "portDifferenceMax": 7.566995918750763e-06,
+      "energyErrorMin": -0.021529197692871094,
+      "energyErrorMax": -0.021529197692871094
+    },
+    {
+      "sigma": 0.5,
+      "gaussianErrorMax": 0.0086532259245577,
+      "portDifferenceMax": 0.024418067187070847,
+      "energyErrorMin": -0.0013113021850585938,
+      "energyErrorMax": -0.0013113021850585938
+    },
+    {
+      "sigma": 0.699999988079071,
+      "gaussianErrorMax": 0.2197616945603192,
+      "portDifferenceMax": 0.08897220104699954,
+      "energyErrorMin": -0.014717057638335973,
+      "energyErrorMax": -0.014717057638335973
+    },
+    {
+      "sigma": 0.8500000238418579,
+      "gaussianErrorMax": 0.10298859419654709,
+      "portDifferenceMax": 0.11055506765842438,
+      "energyErrorMin": 0.0734720379114151,
+      "energyErrorMax": 0.0734720379114151
+    },
+    {
+      "sigma": 1.0,
+      "gaussianErrorMax": 0.4016794989791373,
+      "portDifferenceMax": 0.12822598218917847,
+      "energyErrorMin": 0.027357041835784912,
+      "energyErrorMax": 0.027357041835784912
+    },
+    {
+      "sigma": 1.2999999523162842,
+      "gaussianErrorMax": 0.38587953628662464,
+      "portDifferenceMax": 0.04228614270687103,
+      "energyErrorMin": -0.06024651229381561,
+      "energyErrorMax": -0.06024651229381561
+    },
+    {
+      "sigma": 1.4600000381469727,
+      "gaussianErrorMax": 0.29670385469083166,
+      "portDifferenceMax": 0.05412884056568146,
+      "energyErrorMin": -0.0031013041734695435,
+      "energyErrorMax": -0.0031013041734695435
+    },
+    {
+      "sigma": 1.5399999618530273,
+      "gaussianErrorMax": 0.2821032746441223,
+      "portDifferenceMax": 0.05419030785560608,
+      "energyErrorMin": -0.005025416612625122,
+      "energyErrorMax": -0.005025416612625122
+    },
+    {
+      "sigma": 1.6200000047683716,
+      "gaussianErrorMax": 0.5039142942053743,
+      "portDifferenceMax": 0.2855926752090454,
+      "energyErrorMin": 0.00406801700592041,
+      "energyErrorMax": 0.00406801700592041
+    },
+    {
+      "sigma": 1.7999999523162842,
+      "gaussianErrorMax": 0.16645554927040493,
+      "portDifferenceMax": 0.03947019577026367,
+      "energyErrorMin": -0.011071749031543732,
+      "energyErrorMax": -0.011071749031543732
+    },
+    {
+      "sigma": 2.4000000953674316,
+      "gaussianErrorMax": 0.5074773307497351,
+      "portDifferenceMax": 0.5500435829162598,
+      "energyErrorMin": 0.03343811258673668,
+      "energyErrorMax": 0.03343811258673668
+    },
+    {
+      "sigma": 3.0,
+      "gaussianErrorMax": 0.747431334526302,
+      "portDifferenceMax": 0.4321195185184479,
+      "energyErrorMin": 0.014643371105194092,
+      "energyErrorMax": 0.014643371105194092
+    },
+    {
+      "sigma": 4.0,
+      "gaussianErrorMax": 0.7292353410617038,
+      "portDifferenceMax": 0.1321151852607727,
+      "energyErrorMin": 0.020341947674751282,
+      "energyErrorMax": 0.020341947674751282
+    },
+    {
+      "sigma": 5.989999771118164,
+      "gaussianErrorMax": 64.71033974135962,
+      "portDifferenceMax": 0.1581027900101617,
+      "energyErrorMin": -43.03354747098638,
+      "energyErrorMax": 64.19454434071667
+    },
+    {
+      "sigma": 6.010000228881836,
+      "gaussianErrorMax": 57.544484985620144,
+      "portDifferenceMax": 0.3445536145591177,
+      "energyErrorMin": -44.43569831928471,
+      "energyErrorMax": 57.01468206534628
+    },
+    {
+      "sigma": 8.0,
+      "gaussianErrorMax": 7.302085729656728,
+      "portDifferenceMax": 0.11824789689853787,
+      "energyErrorMin": 0.025062490021809936,
+      "energyErrorMax": 0.025062490021809936
+    },
+    {
+      "sigma": 11.989999771118164,
+      "gaussianErrorMax": 43.8367826791364,
+      "portDifferenceMax": 0.14658875297755003,
+      "energyErrorMin": -43.83678267913638,
+      "energyErrorMax": 27.035173765034415
+    },
+    {
+      "sigma": 12.010000228881836,
+      "gaussianErrorMax": 43.64761989709224,
+      "portDifferenceMax": 0.16076660249382257,
+      "energyErrorMin": -43.64761989709223,
+      "energyErrorMax": 34.161002111795824
+    },
+    {
+      "sigma": 16.0,
+      "gaussianErrorMax": 10.782588159333685,
+      "portDifferenceMax": 0.12182456557638943,
+      "energyErrorMin": 0.02155653783120215,
+      "energyErrorMax": 0.02155653783120215
+    },
+    {
+      "sigma": 17.989999771118164,
+      "gaussianErrorMax": 14.98098144270496,
+      "portDifferenceMax": 0.12239570205565542,
+      "energyErrorMin": -3.194055854692124,
+      "energyErrorMax": 11.13077789923409
+    },
+    {
+      "sigma": 18.03125,
+      "gaussianErrorMax": 15.300279796405059,
+      "portDifferenceMax": 0.12306498101679608,
+      "energyErrorMin": -3.6196617147652432,
+      "energyErrorMax": 11.639788479078561
+    },
+    {
+      "sigma": 18.0625,
+      "gaussianErrorMax": 14.968472005652838,
+      "portDifferenceMax": 0.8381444102269597,
+      "energyErrorMin": -3.2942607867880724,
+      "energyErrorMax": 11.097118670295458
+    },
+    {
+      "sigma": 18.5,
+      "gaussianErrorMax": 30.19873085916711,
+      "portDifferenceMax": 0.15611329581588507,
+      "energyErrorMin": -4.808661380957346,
+      "energyErrorMax": 29.606835547019728
+    },
+    {
+      "sigma": 21.0,
+      "gaussianErrorMax": 24.069803181441788,
+      "portDifferenceMax": 0.1361513408483006,
+      "energyErrorMin": -18.57002971955808,
+      "energyErrorMax": 22.660920248017646
+    },
+    {
+      "sigma": 23.989999771118164,
+      "gaussianErrorMax": 43.79260429268469,
+      "portDifferenceMax": 0.1558980278787203,
+      "energyErrorMin": -43.7926042926847,
+      "energyErrorMax": 29.120339201472234
+    },
+    {
+      "sigma": 24.010000228881836,
+      "gaussianErrorMax": 43.69592506409389,
+      "portDifferenceMax": 0.14299516333267093,
+      "energyErrorMin": -43.6959250640939,
+      "energyErrorMax": 26.681292604189366
+    },
+    {
+      "sigma": 32.0,
+      "gaussianErrorMax": 12.524423418575742,
+      "portDifferenceMax": 0.1200020662508905,
+      "energyErrorMin": 0.020563765428960323,
+      "energyErrorMax": 0.020563765428960323
+    },
+    {
+      "sigma": 48.0,
+      "gaussianErrorMax": 43.743588820198745,
+      "portDifferenceMax": 0.1290835381951183,
+      "energyErrorMin": -43.74357772176154,
+      "energyErrorMax": 26.573682005982846
+    },
+    {
+      "sigma": 60.0,
+      "gaussianErrorMax": 94.50622275471689,
+      "portDifferenceMax": 0.1649209065362811,
+      "energyErrorMin": -94.50622275471687,
+      "energyErrorMax": 66.18247536825947
+    },
+    {
+      "sigma": 69.98999786376953,
+      "gaussianErrorMax": 241.12381118413668,
+      "portDifferenceMax": 0.3797255325480364,
+      "energyErrorMin": -100.0,
+      "energyErrorMax": 240.62831876944983
+    },
+    {
+      "sigma": 70.01000213623047,
+      "gaussianErrorMax": 241.31577916931076,
+      "portDifferenceMax": 0.3775626842980273,
+      "energyErrorMin": -100.0,
+      "energyErrorMax": 240.82030806748662
+    },
+    {
+      "sigma": 96.0,
+      "gaussianErrorMax": 43.74348836045505,
+      "portDifferenceMax": 0.12908358476124704,
+      "energyErrorMin": -43.74348716810346,
+      "energyErrorMax": 26.573457574704662
+    },
+    {
+      "sigma": 128.0,
+      "gaussianErrorMax": 13.830477314073583,
+      "portDifferenceMax": 0.12008599587716162,
+      "energyErrorMin": 0.020027061691507697,
+      "energyErrorMax": 0.020027061691507697
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+# Unity asset metadata belongs in version control.
+.DS_Store
+._*
+
+# Local IDE state and generated build output.
+.idea/
+.vs/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.suo
+bin/
+obj/
+
+# Accidental standalone Unity project/build output inside this package.
+/Library/
+/Temp/
+/Logs/
+/Build/
+/Builds/
+/UserSettings/
+
+# Temporary editor files.
+*~
+*.tmp
+
+# Unity package documentation uses a tilde-suffixed folder.
+!/Documentation~/
+
+# Offline tools (Python) live in a tilde-suffixed folder Unity ignores.
+!/Tools~/
+__pycache__/
