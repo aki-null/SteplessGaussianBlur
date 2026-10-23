@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="560" height="256" viewBox="0 0 560 256" role="img" aria-labelledby="title desc">
   <title id="title">One-level blur pyramid</title>
-  <desc id="desc">Binomial downsampling writes half resolution. A Gaussian in one or two passes filters the coarsest level. Cubic upsampling climbs back; the last upsample is cubic.</desc>
+  <desc id="desc">Binomial downsampling writes half resolution. A Gaussian in one or two passes filters the coarsest resolution. Cubic upsampling climbs back.</desc>
   <defs>
     <marker id="head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#475569"/></marker>
   </defs>
@@ -25,7 +25,7 @@
   <rect class="box" x="419" y="169" width="72" height="40.5" rx="2.8" fill="#dbeafe"/>
   <text x="501" y="193.25" class="sub" text-anchor="start">½ res</text>
   <path class="arrow" d="M105 125 V163"/>
-  <text x="122" y="149" text-anchor="start">Binomial down</text>
+  <text x="122" y="149" text-anchor="start">2x down, 6 taps</text>
   <path class="arrow" d="M455 169 V131"/>
   <text x="438" y="155" text-anchor="end">Cubic up</text>
   <path class="arrow" d="M141 189.25 H413"/>

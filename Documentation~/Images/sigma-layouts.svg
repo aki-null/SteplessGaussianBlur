@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="176" viewBox="0 0 560 176" role="img" aria-labelledby="title desc">
+  <title id="title">Layouts by sigma</title>
+  <desc id="desc">Small layout below sigma 16.1: full-resolution Gaussian below 1.62, fitted down/up pair to 2.40, pyramid to 16.1. Transition layout to 24, wide layout above, with its pitch doubling at 70, 140 and on. Hatched ranges mark where a level fades in: 1.46 to 1.62, the pyramid’s second and third levels, 21 to 24, and the last eighth of sigma before each pitch doubling. Not to scale.</desc>
+  <defs>
+    <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="none"/><line x1="0" y1="0" x2="0" y2="6" stroke="#475569" stroke-width="1.6" stroke-opacity="0.45"/></pattern>
+  </defs>
+  <style>
+    text { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #1e293b; font-size: 14px; }
+    .heading { font-size: 15px; font-weight: 600; text-anchor: middle; fill: #334155; }
+    .label { font-size: 14px; font-weight: 600; text-anchor: middle; }
+    .sub { font-size: 12px; fill: #475569; text-anchor: middle; }
+    .axis { stroke: #94a3b8; stroke-width: 1.2; }
+    .bar { fill: #93c5fd; stroke: #64748b; stroke-width: 1; }
+    .amber { fill: #fcd34d; stroke: #b45309; stroke-width: 1; }
+    .pos { fill: #087f5b; }
+    .neg { fill: #c2410c; }
+    .curve { fill: none; stroke: #2563eb; stroke-width: 2; }
+    .guide { stroke: #cbd5e1; stroke-width: 1; stroke-dasharray: 3 3; }
+  </style>
+  <rect width="560" height="176" rx="8" fill="#ffffff"/>
+  <text x="280.0" y="26" class="heading">Layouts by sigma (not to scale)</text>
+  <path d="M21 64 V56 H291 V64" fill="none" stroke="#64748b" stroke-width="1.2"/>
+  <text x="156" y="50" class="sub">Small layout</text>
+  <rect x="20" y="70" width="82" height="46" fill="#eff6ff" stroke="#64748b" stroke-width="1.5"/>
+  <text x="61.0" y="90" class="label" style="font-size:13px">Full-res</text>
+  <text x="61.0" y="106" class="label" style="font-size:13px">Gaussian</text>
+  <rect x="102" y="70" width="70" height="46" fill="#dbeafe" stroke="#64748b" stroke-width="1.5"/>
+  <text x="137.0" y="90" class="label" style="font-size:13px">Fitted</text>
+  <text x="137.0" y="106" class="label" style="font-size:13px">down/up</text>
+  <rect x="172" y="70" width="120" height="46" fill="#bfdbfe" stroke="#64748b" stroke-width="1.5"/>
+  <text x="232.0" y="98" class="label" style="font-size:13px">Pyramid</text>
+  <rect x="292" y="70" width="100" height="46" fill="#93c5fd" stroke="#64748b" stroke-width="1.5"/>
+  <text x="342.0" y="98" class="label" style="font-size:13px">Transition</text>
+  <rect x="392" y="70" width="148" height="46" fill="#60a5fa" stroke="#64748b" stroke-width="1.5"/>
+  <text x="421" y="98" class="label" style="font-size:13px">Wide</text>
+  <rect x="88" y="70" width="14" height="46" fill="url(#hatch)"/>
+  <rect x="198" y="70" width="12" height="46" fill="url(#hatch)"/>
+  <rect x="242" y="70" width="16" height="46" fill="url(#hatch)"/>
+  <rect x="350" y="70" width="42" height="46" fill="url(#hatch)"/>
+  <rect x="451" y="70" width="15" height="46" fill="url(#hatch)"/>
+  <rect x="508" y="70" width="15" height="46" fill="url(#hatch)"/>
+  <line class="axis" x1="20" y1="116" x2="20" y2="122"/>
+  <text x="20" y="136" class="sub">0</text>
+  <line class="axis" x1="102" y1="116" x2="102" y2="122"/>
+  <text x="102" y="136" class="sub">1.62</text>
+  <line class="axis" x1="172" y1="116" x2="172" y2="122"/>
+  <text x="172" y="136" class="sub">2.40</text>
+  <line class="axis" x1="292" y1="116" x2="292" y2="122"/>
+  <text x="292" y="136" class="sub">16.1</text>
+  <line class="axis" x1="392" y1="116" x2="392" y2="122"/>
+  <text x="392" y="136" class="sub">24</text>
+  <line class="axis" x1="466" y1="116" x2="466" y2="122"/>
+  <text x="466" y="136" class="sub">70</text>
+  <line class="axis" x1="523" y1="116" x2="523" y2="122"/>
+  <text x="523" y="136" class="sub">140 …</text>
+  <text x="494" y="154" class="sub">pitch doubles</text>
+  <rect x="20" y="144" width="14" height="12" fill="url(#hatch)" stroke="#64748b" stroke-width="1"/>
+  <text x="40" y="154" class="sub" style="text-anchor:start">fading in a level</text>
+</svg>

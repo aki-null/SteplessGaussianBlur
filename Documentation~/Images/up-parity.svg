@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="530" viewBox="0 0 560 530" role="img" aria-labelledby="title desc">
+  <title id="title">Virtual level up weights</title>
+  <desc id="desc">The virtual level’s 2x up at sigma 24. Each sixteenth-resolution texel covers two eighth-resolution texels. When upsampling, the left one reads the four nearest sixteenth-resolution centers, 1.75 and 0.75 sixteenth-resolution texels to its left and 0.25 and 1.25 to its right, taking 3%, 32%, 53% and 12% from them. The right one sees the mirror image.</desc>
+  <style>
+    text { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill: #1e293b; font-size: 13px; }
+    .heading { font-size: 14px; font-weight: 600; fill: #334155; }
+    .row { font-size: 12px; font-weight: 600; fill: #334155; text-anchor: end; }
+    .idx { font-size: 11px; fill: #475569; text-anchor: middle; }
+    .sub { font-size: 12px; fill: #475569; text-anchor: middle; }
+    .w { font-size: 12px; font-weight: 600; fill: #b45309; text-anchor: middle; }
+    .box { stroke: #64748b; stroke-width: 1.2; }
+    .bar { fill: #fcd34d; stroke: #b45309; stroke-width: 1.2; }
+    .guide { stroke: #b45309; stroke-width: 1.2; stroke-dasharray: 3 3; }
+  </style>
+  <rect width="560" height="530" rx="8" fill="#ffffff"/>
+  <text x="20" y="28" class="heading">Virtual level’s 2x up at sigma 24. x is the left 1/8 texel of a 1/16 texel</text>
+  <rect class="bar" x="151" y="134.3098693759071" width="18" height="3.690130624092888"/>
+  <text x="160" y="128.3098693759071" class="w">3%</text>
+  <rect class="bar" x="231" y="94.45645863570392" width="18" height="43.543541364296075"/>
+  <text x="240" y="88.45645863570392" class="w">32%</text>
+  <rect class="bar" x="311" y="66.34615384615387" width="18" height="71.65384615384613"/>
+  <text x="320" y="60.34615384615387" class="w">53%</text>
+  <rect class="bar" x="391" y="121.03846153846155" width="18" height="16.96153846153846"/>
+  <text x="400" y="115.03846153846155" class="w">12%</text>
+  <text x="34" y="157" class="row">1/16</text>
+  <rect class="box" x="40" y="138" width="80" height="28" fill="#f8fafc"/>
+  <circle cx="80" cy="152" r="3" fill="#475569"/>
+  <rect class="box" x="120" y="138" width="80" height="28" fill="#fef3c7"/>
+  <circle cx="160" cy="152" r="3" fill="#475569"/>
+  <rect class="box" x="200" y="138" width="80" height="28" fill="#fef3c7"/>
+  <circle cx="240" cy="152" r="3" fill="#475569"/>
+  <rect class="box" x="280" y="138" width="80" height="28" fill="#fef3c7"/>
+  <circle cx="320" cy="152" r="3" fill="#475569"/>
+  <rect class="box" x="360" y="138" width="80" height="28" fill="#fef3c7"/>
+  <circle cx="400" cy="152" r="3" fill="#475569"/>
+  <rect class="box" x="440" y="138" width="80" height="28" fill="#f8fafc"/>
+  <circle cx="480" cy="152" r="3" fill="#475569"/>
+  <text x="34" y="201" class="row">1/8</text>
+  <rect class="box" x="40" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="80" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="120" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="160" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="200" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="240" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="280" y="184" width="40" height="24" fill="#b45309"/>
+  <text x="300.0" y="200" class="idx" style="fill:#ffffff;font-weight:600">x</text>
+  <rect class="box" x="320" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="360" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="400" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="440" y="184" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="480" y="184" width="40" height="24" fill="#eff6ff"/>
+  <line class="guide" x1="300.0" y1="58" x2="300.0" y2="184"/>
+  <text x="160" y="224" class="sub">−1.75</text>
+  <text x="240" y="224" class="sub">−0.75</text>
+  <text x="320" y="224" class="sub">+0.25</text>
+  <text x="400" y="224" class="sub">+1.25</text>
+  <text x="20" y="244" class="heading">x is the right 1/8 texel: everything flips</text>
+  <rect class="bar" x="231" y="337.03846153846155" width="18" height="16.96153846153846"/>
+  <text x="240" y="331.03846153846155" class="w">12%</text>
+  <rect class="bar" x="311" y="282.34615384615387" width="18" height="71.65384615384613"/>
+  <text x="320" y="276.34615384615387" class="w">53%</text>
+  <rect class="bar" x="391" y="310.45645863570394" width="18" height="43.543541364296075"/>
+  <text x="400" y="304.45645863570394" class="w">32%</text>
+  <rect class="bar" x="471" y="350.3098693759071" width="18" height="3.690130624092888"/>
+  <text x="480" y="344.3098693759071" class="w">3%</text>
+  <text x="34" y="373" class="row">1/16</text>
+  <rect class="box" x="40" y="354" width="80" height="28" fill="#f8fafc"/>
+  <circle cx="80" cy="368" r="3" fill="#475569"/>
+  <rect class="box" x="120" y="354" width="80" height="28" fill="#f8fafc"/>
+  <circle cx="160" cy="368" r="3" fill="#475569"/>
+  <rect class="box" x="200" y="354" width="80" height="28" fill="#fef3c7"/>
+  <circle cx="240" cy="368" r="3" fill="#475569"/>
+  <rect class="box" x="280" y="354" width="80" height="28" fill="#fef3c7"/>
+  <circle cx="320" cy="368" r="3" fill="#475569"/>
+  <rect class="box" x="360" y="354" width="80" height="28" fill="#fef3c7"/>
+  <circle cx="400" cy="368" r="3" fill="#475569"/>
+  <rect class="box" x="440" y="354" width="80" height="28" fill="#fef3c7"/>
+  <circle cx="480" cy="368" r="3" fill="#475569"/>
+  <text x="34" y="417" class="row">1/8</text>
+  <rect class="box" x="40" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="80" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="120" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="160" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="200" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="240" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="280" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="320" y="400" width="40" height="24" fill="#b45309"/>
+  <text x="340.0" y="416" class="idx" style="fill:#ffffff;font-weight:600">x</text>
+  <rect class="box" x="360" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="400" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="440" y="400" width="40" height="24" fill="#eff6ff"/>
+  <rect class="box" x="480" y="400" width="40" height="24" fill="#eff6ff"/>
+  <line class="guide" x1="340.0" y1="274" x2="340.0" y2="400"/>
+  <text x="240" y="440" class="sub">−1.25</text>
+  <text x="320" y="440" class="sub">−0.25</text>
+  <text x="400" y="440" class="sub">+0.75</text>
+  <text x="480" y="440" class="sub">+1.75</text>
+  <circle cx="46" cy="486" r="3" fill="#475569"/>
+  <text x="56" y="490" class="sub" style="text-anchor:start">1/16 texel center. Bars: how much the up takes from each center.</text>
+  <text x="56" y="510" class="sub" style="text-anchor:start">Numbers under the rows: distance from x’s center, in 1/16 texels.</text>
+</svg>
