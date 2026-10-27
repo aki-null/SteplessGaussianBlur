@@ -1,6 +1,6 @@
 {
     "name": "net.aki-null.stepless-gaussian-blur",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "displayName": "Stepless Gaussian Blur",
     "description": "Fast, motion-stable near-Gaussian blur for URP RenderGraph, with consistent GPU time at any strength.",
     "unity": "6000.3",
