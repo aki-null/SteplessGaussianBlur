@@ -1,7 +1,7 @@
 """Reads named constants from the runtime's C# sources, so the Python never copies them.
 
     read('SmallKernel.cs', 'DownOuterMass')           ->  0.18823529411764706
-    read('SmallKernel.cs', 'Binomial')                ->  [0.0316..., 0.1566..., ...]
+    read('SmallKernel.cs', 'BinomialDownFar')         ->  43
     read('TransitionKernel.cs', 'Quarter')            ->  [(-1.25390625, 0.125, 0, 0), ...]
 
 A constant is a const or readonly field's `Name = value;`, or a property's

@@ -1,5 +1,5 @@
 // Sigma below 11.5: full-resolution Gaussian rows, the fitted down/up pair
-// and the binomial/cubic pyramid. C# side: Layouts/SmallLayout.cs and
+// and the pyramid (binomial or [1, 3, 3, 1] down, cubic up). C# side: Layouts/SmallLayout.cs and
 // Kernels/SmallKernel.cs.
 
 // Small-layout taps, in source texels.
@@ -184,6 +184,15 @@ float4 FragDown(Varyings input) : SV_Target
         sum += SampleSource(center + float2(_Taps[x].x, _Taps[y].x))
             * (_Taps[x].y * _Taps[y].y);
     return PassOutput(sum);
+}
+
+// FragDown with the outer fetches on single texels: [1, 3, 3, 1] / 8 as two
+// bilinear fetches per axis.
+float4 FragDownHalve(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    float2 center = (input.positionCS.xy - _SmallTargetHalo) * 2;
+    return PassOutput(HALVE_2X2(SampleSource, center));
 }
 
 // Each fine pixel maps to a different phase of the half-size grid.

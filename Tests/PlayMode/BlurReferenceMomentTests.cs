@@ -16,8 +16,9 @@ namespace SteplessGaussianBlur.Tests
     {
         // Each layout switch and blend endpoint from both sides, at sigma
         // 0.7409 (row pairing), 1.46 (fitted rows), 1.616 (down/up), 1.74
-        // (half-res Gaussian), 2.40 (pyramid), 3.94, 4.22, 8.00 and 8.55
-        // (pyramid levels), 4.25 and 4.5 (outer upsample blend), 11.5 (transition),
+        // (half-res Gaussian), 2.40 (pyramid), 3.94 and 4.22 (pyramid
+        // levels), 4.25 and 4.5 (outer upsample blend), 5.9 and 6.3 (halving
+        // down), 11.5 (transition),
         // 16.1, 16.6 and 21 (transition blends), 24 (wide), 64 (variance
         // approximation), 70 and 140 (working pitch). 0.8 is an interior control.
         [TestCase(0.8f), TestCase(0.735f), TestCase(0.745f)]
@@ -25,7 +26,7 @@ namespace SteplessGaussianBlur.Tests
         [TestCase(1.735f), TestCase(1.745f), TestCase(2.395f), TestCase(2.405f)]
         [TestCase(4.24f), TestCase(4.26f), TestCase(4.49f), TestCase(4.51f)]
         [TestCase(3.935f), TestCase(3.945f), TestCase(4.215f), TestCase(4.225f)]
-        [TestCase(7.995f), TestCase(8.01f), TestCase(8.55f), TestCase(8.56f)]
+        [TestCase(5.89f), TestCase(5.91f), TestCase(6.29f), TestCase(6.31f)]
         [TestCase(11.49f), TestCase(11.51f)]
         [TestCase(16.09f), TestCase(16.11f), TestCase(16.59f), TestCase(16.61f)]
         [TestCase(20.99f), TestCase(21.01f), TestCase(23.99f), TestCase(24.01f)]

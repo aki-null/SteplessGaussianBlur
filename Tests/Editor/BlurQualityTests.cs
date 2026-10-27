@@ -94,7 +94,8 @@ namespace SteplessGaussianBlur.Tests
         }
 
         // Rows of nine or ten fetches (pyramid crossfades, High) run an
-        // exact ten-fetch pass, eleven or twelve the twelve-fetch pass.
+        // exact ten-fetch pass, eleven or twelve (quarter-res pyramid rows,
+        // High) the twelve-fetch pass.
         [TestCase(9, "Horizontal10")]
         [TestCase(10, "Horizontal10")]
         [TestCase(11, "Horizontal12")]

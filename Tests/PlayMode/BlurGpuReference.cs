@@ -86,20 +86,27 @@ namespace SteplessGaussianBlur.Tests
 
         static NodeStage SmallRow(NodeStage parent, SmallKernel.Workspace workspace,
             double variance, SmallKernel.Crossfade crossfade)
+            => SmallRow(parent, workspace, variance, crossfade, SmallKernel.PyramidDown.Binomial);
+
+        static NodeStage SmallRow(NodeStage parent, SmallKernel.Workspace workspace,
+            double variance, SmallKernel.Crossfade crossfade, in SmallKernel.PyramidDown down)
         {
-            int count = SmallKernel.GaussianRows(workspace, variance, crossfade);
+            int count = SmallKernel.GaussianRows(workspace, variance, crossfade, down);
             return Stage(parent, workspace.taps, count, phases: 2, stride: 16);
         }
 
         static NodeStage SmallPyramid(NodeStage source, SmallKernel.Workspace workspace,
-            double variance, double blend = 0, int outputScale = 1)
+            double variance, in SmallKernel.PyramidDown pyramidDown, int levels = 0, double blend = 0,
+            int outputScale = 1)
         {
-            if (variance < SmallKernel.NextLevelFadeStart)
+            if (variance < pyramidDown.fadeStart || levels >= SmallKernel.MaxPyramidLevels)
                 return SmallRow(source, workspace, variance, SmallKernel.Crossfade.None);
-            if (variance < SmallKernel.NextLevelFadeEnd)
-                return SmallRow(source, workspace, variance, SmallKernel.Crossfade.IntoNextLevel);
-            NodeStage down = Stage(source, SmallKernel.BinomialDown, 3, StageKind.Downsample, 2, 0.5);
-            down = SmallPyramid(down, workspace, SmallKernel.CoarseVariance(variance));
+            if (variance < pyramidDown.fadeEnd)
+                return SmallRow(source, workspace, variance, SmallKernel.Crossfade.IntoNextLevel, pyramidDown);
+            // A halving down is the same three fetches with whole-texel outer ones.
+            pyramidDown.Pack(workspace.downTaps);
+            NodeStage down = Stage(source, workspace.downTaps, 3, StageKind.Downsample, 2, 0.5);
+            down = SmallPyramid(down, workspace, pyramidDown.CoarseVariance(variance), pyramidDown, levels + 1);
             // A reduced output is the half-res level, before the bilinear Up.
             if (outputScale == 2)
                 return down;
@@ -124,8 +131,8 @@ namespace SteplessGaussianBlur.Tests
             {
                 double bilinear = SmallKernel.OuterUpsampleBilinear(sigma, reduced);
                 double upVariance = SmallKernel.OuterUpsample(workspace, bilinear);
-                return SmallPyramid(source, workspace, SmallKernel.OuterLevelVariance(variance, upVariance), bilinear,
-                    outputScale);
+                return SmallPyramid(source, workspace, SmallKernel.OuterLevelVariance(variance, upVariance),
+                    SmallKernel.PyramidDown.At(sigma), 0, bilinear, outputScale);
             }
             FittedDownUp downUp = FittedDownUp.At(variance);
             downUp.PackDown(workspace.taps);

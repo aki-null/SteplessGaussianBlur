@@ -131,6 +131,13 @@ Shader "Hidden/SteplessGaussianBlur"
         }
         Pass
         {
+            Name "DownHalve"
+            HLSLPROGRAM
+            #pragma fragment FragDownHalve
+            ENDHLSL
+        }
+        Pass
+        {
             Name "Up"
             HLSLPROGRAM
             #pragma fragment FragUp

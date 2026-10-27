@@ -36,7 +36,9 @@ namespace SteplessGaussianBlur.Tests
                 15.463531483015744,    // A pyramid level starts crossfading into one more level.
                 17.743531483015744,    // That crossfade ends; the extra level becomes real passes.
                 18.012380026063752,    // The outermost cubic Up starts fading to bilinear (sigma 4.25).
-                20.193430251737784     // The outermost Up is bilinear: one fetch instead of four (sigma 4.5).
+                20.193430251737784,    // The outermost Up is bilinear: one fetch instead of four (sigma 4.5).
+                34.711810448091605,    // The binomial down starts turning into [1, 3, 3, 1] (sigma 5.9).
+                39.577475316768336     // The down halves: four fetches instead of nine (sigma 6.3).
             };
             // A literal that drifts from its runtime switch would probe a
             // stretch with no switch at all.
@@ -47,6 +49,8 @@ namespace SteplessGaussianBlur.Tests
             Assert.That(boundaries[8], Is.EqualTo(OuterLevelSwitch(SmallKernel.NextLevelFadeEnd)).Within(1e-5));
             Assert.That(boundaries[9], Is.EqualTo(BlurMath.RequestedVariance(SmallKernel.OuterBilinearStartSigma)).Within(1e-12));
             Assert.That(boundaries[10], Is.EqualTo(BlurMath.RequestedVariance(SmallKernel.OuterBilinearEndSigma)).Within(1e-12));
+            Assert.That(boundaries[11], Is.EqualTo(BlurMath.RequestedVariance(SmallKernel.HalveStartSigma)).Within(1e-12));
+            Assert.That(boundaries[12], Is.EqualTo(BlurMath.RequestedVariance(SmallKernel.HalvedSigma)).Within(1e-12));
             foreach (double variance in boundaries)
             {
                 float sigma = SigmaForVariance(variance);
@@ -208,11 +212,11 @@ namespace SteplessGaussianBlur.Tests
                     // relative to the HDR input's peak would hide shape changes.
                     double change = difference / amplitude;
                     TestContext.WriteLine($"Endpoint sigma {boundary}, phase {channel}, L1 change {change:R}");
-                    // Measured worst phases on M4: 0.77% at sigma 11.5, where
-                    // the transition replaces the pyramid's third level, and
-                    // 0.17% at sigma 24 (Tools~/FilterFit/fit_transition.py
+                    // Measured worst phases on M4: 0.92% at sigma 11.5, where
+                    // the transition replaces the halving pyramid, and 0.17%
+                    // at sigma 24 (Tools~/FilterFit/fit_transition.py
                     // fractions). Keep separate regression budgets.
-                    double budget = boundary < 20 ? 0.0085 : 0.0020;
+                    double budget = boundary < 20 ? 0.0100 : 0.0020;
                     Assert.That(change, Is.LessThan(budget),
                         $"Endpoint response change, sigma {boundary}, phase {channel}");
                 }

@@ -73,3 +73,10 @@ float4 PassOutput(float4 value)
 #endif
     return value;
 }
+
+// A [1, 3, 3, 1] / 8 halve in both axes as four bilinear fetches, each 0.75
+// from the coarse texel's center in x and y. SAMPLE is the pass's own
+// sampling function. Weighted first so finite HDR values do not overflow.
+#define HALVE_2X2(SAMPLE, center) \
+    (SAMPLE((center) + float2(-0.75, -0.75)) * 0.25 + SAMPLE((center) + float2(0.75, -0.75)) * 0.25 + \
+     SAMPLE((center) + float2(-0.75, 0.75)) * 0.25 + SAMPLE((center) + float2(0.75, 0.75)) * 0.25)

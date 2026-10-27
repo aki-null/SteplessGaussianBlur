@@ -159,17 +159,54 @@ def pack(row, capacity=16, even_moment=False, parity=-1):
 
 # ---- SmallKernel (pyramid part) ------------------------------------------------------------
 
-LEVEL_VARIANCE = read('SmallKernel.cs', 'LevelVariance')
-NEXT_LEVEL_FADE_START = read('SmallKernel.cs', 'NextLevelFadeStart')
-NEXT_LEVEL_FADE_END = read('SmallKernel.cs', 'NextLevelFadeEnd')
-BINOMIAL = read('SmallKernel.cs', 'Binomial')
-# Fetches (offset, weight) of the binomial down and the cubic B-spline up.
-BINOMIAL_DOWN = [(f32(x), f32(w)) for x, w, _, _ in read('SmallKernel.cs', 'BinomialDown')]
+CUBIC_UP_VARIANCE = read('SmallKernel.cs', 'CubicUpVariance')
+# Fetches (offset, weight) of the cubic B-spline up.
 CUBIC_UP = [(f32(x), f32(w)) for x, w, _, _ in read('SmallKernel.cs', 'CubicUp')]
+HALVE_START_SIGMA = read('SmallKernel.cs', 'HalveStartSigma')
+HALVED_SIGMA = read('SmallKernel.cs', 'HalvedSigma')
+MAX_PYRAMID_LEVELS = read('SmallKernel.cs', 'MaxPyramidLevels')
+
+
+class PyramidDown:
+    """SmallKernel.PyramidDown: three fetches, the outer one far/256 on its far texel."""
+    def __init__(self, far):
+        fraction = far/256
+        self.far = far
+        self.outer_mass = 0.125/(1-2*fraction)
+        inner = 0.5-self.outer_mass
+        # Weights on source pixels 2j - 2 .. 2j + 3.
+        self.weights = [self.outer_mass*fraction, self.outer_mass*(1-fraction), inner, inner,
+                        self.outer_mass*(1-fraction), self.outer_mass*fraction]
+        self.down_variance = 2*self.outer_mass*(6.25*fraction+2.25*(1-fraction))+(1-2*self.outer_mass)*0.25
+        self.level_variance = self.down_variance+4*CUBIC_UP_VARIANCE
+        self.fade_start = self.level_variance+4*0.4*0.4
+        self.fade_end = self.level_variance+4*0.55*0.55
+        # Pack(center 0): the fetches FragDown runs, as (offset, weight).
+        outer = 2.5-(256-far)/256
+        self.fetches = [(f32(-outer), f32(self.outer_mass)), (0., f32(1-2*self.outer_mass)),
+                        (f32(outer), f32(self.outer_mass))]
+
+    def coarse_variance(self, variance):
+        return (variance-self.level_variance)/4
+
+    @staticmethod
+    def at(sigma):
+        halved = smooth((sigma*sigma-HALVE_START_SIGMA**2)/(HALVED_SIGMA**2-HALVE_START_SIGMA**2))
+        if halved == 0:
+            return BINOMIAL
+        if halved == 1:
+            return HALVED
+        far = round(BINOMIAL_DOWN_FAR*(1-halved))
+        return PyramidDown(min(max(far, 1), BINOMIAL_DOWN_FAR-1))
+
+
+BINOMIAL_DOWN_FAR = read('SmallKernel.cs', 'BinomialDownFar')
+BINOMIAL = PyramidDown(BINOMIAL_DOWN_FAR)
+HALVED = PyramidDown(0)
 
 
 def coarse_variance(variance):
-    return (variance-LEVEL_VARIANCE)/4
+    return BINOMIAL.coarse_variance(variance)
 
 
 def outer_upsample_bilinear(sigma):
@@ -178,7 +215,6 @@ def outer_upsample_bilinear(sigma):
     return smooth((sigma*sigma-start*start)/(end*end-start*start))
 
 
-CUBIC_UP_VARIANCE = read('SmallKernel.cs', 'CubicUpVariance')
 OUTER_BILINEAR_START_SIGMA = read('SmallKernel.cs', 'OuterBilinearStartSigma')
 OUTER_BILINEAR_END_SIGMA = read('SmallKernel.cs', 'OuterBilinearEndSigma')
 # SmallKernel.ParityPairingStart: rows pair by output parity from this sigma.
@@ -220,14 +256,15 @@ def outer_upsample(bilinear):
     return taps, variance
 
 
-def gaussian_rows(variance, into_next_level):
+def gaussian_rows(variance, into_next_level, down=None):
     """SmallKernel.GaussianRows for Crossfade.None / IntoNextLevel: [even fetches, odd fetches]."""
+    down = down or BINOMIAL
     g = gaussian(variance, 4)
     fade = 0.
     if into_next_level:
-        fade = smooth((variance-NEXT_LEVEL_FADE_START)/(NEXT_LEVEL_FADE_END-NEXT_LEVEL_FADE_START))
+        fade = smooth((variance-down.fade_start)/(down.fade_end-down.fade_start))
         if fade > 0:
-            coarse = gaussian_rows(coarse_variance(variance), False)
+            coarse = gaussian_rows(down.coarse_variance(variance), False)
     rows = []
     for x in range(2):
         row = {}
@@ -236,7 +273,7 @@ def gaussian_rows(variance, into_next_level):
                 row[k] = row.get(k, 0.)+(1-fade)*w
         if fade > 0:
             # The next level as its passes run: cubic up fetches, the coarse
-            # Gaussian's fetches for each coarse texel's parity, binomial down.
+            # Gaussian's fetches for each coarse texel's parity, the down.
             for ux, uw in CUBIC_UP[2*x:2*x+2]:
                 uf = math.floor(ux)
                 for c, cw in ((uf, uw*(1-(ux-uf))), (uf+1, uw*(ux-uf))):
@@ -249,7 +286,7 @@ def gaussian_rows(variance, into_next_level):
                             if bw == 0:
                                 continue
                             for h in range(6):
-                                v = fade*cw*bw*BINOMIAL[h]
+                                v = fade*cw*bw*down.weights[h]
                                 if v > 0:
                                     row[2*b+h-2-x] = row.get(2*b+h-2-x, 0.)+v
         rows.append(pack(row, parity=x if variance >= PARITY_PAIRING_START else -1))

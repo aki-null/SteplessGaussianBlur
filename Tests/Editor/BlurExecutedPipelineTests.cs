@@ -30,7 +30,7 @@ namespace SteplessGaussianBlur.Tests
         static readonly float[] Switches =
         {
             0.740902f, 1.25f, 1.46f, 1.6160f, 1.7237f, 1.80f, 2.40f, 3.937810f, 4.218166f, 4.25f, 4.5f,
-            8.002574f, 8.554936f, 11.5f,
+            5.9f, 6.3f, 11.5f,
             16.1f, 16.1875f, 16.6f, 21, 24, 64, 70, 140
         };
 
@@ -179,9 +179,12 @@ namespace SteplessGaussianBlur.Tests
                 ExecutedPipeline.Respond(sigma, length, point)), Is.GreaterThan(1e-4));
         }
 
-        // Across the reduced output's own switches, at its largest scale.
+        // Across the reduced output's own switches, at its largest scale,
+        // and where its downs turn into [1, 3, 3, 1].
         [TestCase(2.75f, 0.0006)]
         [TestCase(3f, 0.0006)]
+        [TestCase(5.9f, 0.0011)]
+        [TestCase(6.3f, 0.0006)]
         public void ReducedSwitchesKeepTheResponse(float sigma, double budget)
         {
             float below = sigma - 1e-5f, above = sigma + 1e-5f;
@@ -196,11 +199,8 @@ namespace SteplessGaussianBlur.Tests
 
         // A reduced output's bilinear Up budgets less variance than the cubic
         // Up, so its second level crossfades in at lower sigma than Record's.
-        // The third comes after both Ups are bilinear, at the same sigma.
         [TestCase(SmallKernel.NextLevelFadeStart, 1)]
         [TestCase(SmallKernel.NextLevelFadeEnd, 1)]
-        [TestCase(SmallKernel.NextLevelFadeStart, 2)]
-        [TestCase(SmallKernel.NextLevelFadeEnd, 2)]
         public void ReducedLevelCrossfadesKeepTheResponse(double coarse, int levels)
         {
             double sigma = ReducedLevelSwitchSigma(coarse, levels);
@@ -290,10 +290,8 @@ namespace SteplessGaussianBlur.Tests
         [TestCase(0.3, 0.740902, 55)]
         [TestCase(0.740902, 1.616, 45)]
         [TestCase(1.616, 2.4, 25)]
-        // The pyramid's 15.1 is at sigma 9.73, where a fetch steps to the
-        // next grid point; the sweep reached it once it ended at 11.5.
-        [TestCase(2.4, 11.5, 16)]
-        [TestCase(9.72, 9.74, 16)]
+        // The pyramid's largest, 10.6, is at sigma 7.04.
+        [TestCase(2.4, 11.5, 12)]
         [TestCase(11.5, 24, 18)]
         [TestCase(24, 256, 12)]
         public void ResponseChangesSmoothlyWithSigma(double lo, double hi, double bound)
@@ -320,7 +318,8 @@ namespace SteplessGaussianBlur.Tests
         // Where the layouts are designed to meet, the budget is the size of
         // an ordinary step to the next sampler grid point (up to 5.5e-4).
         // The full-res row's handover to real down/up passes (sigma 1.616),
-        // the transition (0.47% at 11.5) and the pitch switches get their
+        // the transition (0.62% at 11.5), the down's first 1/256 step toward
+        // [1, 3, 3, 1] (0.10% at 5.9) and the pitch switches get their
         // measured steps with a little room.
         [TestCase(0.740902f, 0.0006)]
         [TestCase(0.75f, 0.0006)]
@@ -333,8 +332,9 @@ namespace SteplessGaussianBlur.Tests
         [TestCase(4.218166f, 0.0006)]
         [TestCase(4.25f, 0.0006)]
         [TestCase(4.5f, 0.0006)]
-        [TestCase(8.554936f, 0.0006)]
-        [TestCase(11.5f, 0.0055)]
+        [TestCase(5.9f, 0.0011)]
+        [TestCase(6.3f, 0.0006)]
+        [TestCase(11.5f, 0.0070)]
         [TestCase(16.1f, 0.0006)]
         [TestCase(16.6f, 0.0006)]
         [TestCase(21f, 0.0006)]
@@ -352,6 +352,33 @@ namespace SteplessGaussianBlur.Tests
                     ExecutedPipeline.Respond(above, length, point + p));
                 Assert.That(change, Is.LessThan(budget), $"phase {p}");
             }
+        }
+
+        // Over 5.9-6.3 the down's outer fetch moves one 1/256 step at a
+        // time, the finest the sampler holds. Each step changes the
+        // response by up to 0.20% (at 6.243).
+        [Test]
+        public void HalvingDownStepsStaySmall()
+        {
+            int previous = SmallKernel.PyramidDown.At(SmallKernel.HalveStartSigma).far;
+            for (int i = 1; i <= 20000; i++)
+            {
+                double sigma = SmallKernel.HalveStartSigma +
+                    i * (SmallKernel.HalvedSigma - SmallKernel.HalveStartSigma) / 20000;
+                int far = SmallKernel.PyramidDown.At(sigma).far;
+                if (far == previous)
+                    continue;
+                previous = far;
+                float below = (float)(sigma - 1e-5), above = (float)(sigma + 1e-5);
+                var (length, point) = ExecutedPipeline.Frame(above);
+                for (int p = 0; p < Phases; p++)
+                {
+                    double change = ExecutedPipeline.L1(ExecutedPipeline.Respond(below, length, point + p),
+                        ExecutedPipeline.Respond(above, length, point + p));
+                    Assert.That(change, Is.LessThan(0.0022), $"sigma {sigma:R}, phase {p}");
+                }
+            }
+            Assert.That(previous, Is.EqualTo(0));
         }
 
         [Test]
@@ -390,7 +417,9 @@ namespace SteplessGaussianBlur.Tests
                 for (int k = 0; k < 4; k++)
                     AssertOnGrid(workspace.outerTaps[k].x, sigma);
             }
-            foreach (Vector4 tap in SmallKernel.BinomialDown)
+            var downTaps = new Vector4[3];
+            SmallKernel.PyramidDown.Binomial.Pack(downTaps);
+            foreach (Vector4 tap in downTaps)
                 AssertOnGrid(tap.x, 0);
             foreach (Vector4 tap in SmallKernel.CubicUp)
                 AssertOnGrid(tap.x, 0);

@@ -6,33 +6,130 @@ namespace SteplessGaussianBlur.Tests
 {
     public sealed class BlurKernelTests
     {
+        // The binomial down written out on its own, to check PyramidDown and
+        // the fitted pair against: three fetches (the outer held at 213/256)
+        // and its six weights on source pixels 2j-2 .. 2j+3.
+        static readonly UnityEngine.Vector4[] BinomialDown =
+        {
+            new UnityEngine.Vector4(-2.5f + 213f / 256f, (float)SmallKernel.DownOuterMass, 0, 0),
+            new UnityEngine.Vector4(0, (float)(1 - 2 * SmallKernel.DownOuterMass), 0, 0),
+            new UnityEngine.Vector4(2.5f - 213f / 256f, (float)SmallKernel.DownOuterMass, 0, 0)
+        };
+        static readonly double[] BinomialWeights =
+        {
+            SmallKernel.DownOuterMass * 43 / 256, SmallKernel.DownOuterMass * 213 / 256, 0.5 - SmallKernel.DownOuterMass,
+            0.5 - SmallKernel.DownOuterMass, SmallKernel.DownOuterMass * 213 / 256, SmallKernel.DownOuterMass * 43 / 256
+        };
+
         // Level switches that BlurExecutedPipelineTests and
         // BlurReferenceMomentTests name as literals. The outer Up's blend
         // changes the outer level's budget, so a changed blend or budget
         // must move those literals too.
         [TestCase(1, 3.937810, 4.218166)]
-        [TestCase(2, 8.002574, 8.554936)]
         public void PyramidLevelSwitchesMatchTheirTestLiterals(int levels, double fadeStart, double fadeEnd)
         {
-            Assert.That(LevelSwitchSigma(SmallKernel.NextLevelFadeStart, levels), Is.EqualTo(fadeStart).Within(2e-6));
-            Assert.That(LevelSwitchSigma(SmallKernel.NextLevelFadeEnd, levels), Is.EqualTo(fadeEnd).Within(2e-6));
+            SmallKernel.PyramidDown down = SmallKernel.PyramidDown.Binomial;
+            Assert.That(LevelSwitchSigma(down.fadeStart, levels, down), Is.EqualTo(fadeStart).Within(2e-6));
+            Assert.That(LevelSwitchSigma(down.fadeEnd, levels, down), Is.EqualTo(fadeEnd).Within(2e-6));
         }
 
-        // The transition's eighth-grid Gaussian takes over from the pyramid's
-        // third level; the pyramid never starts a fourth.
+        // The binomial pyramid would add a third level from sigma 8.0; by
+        // then the down halves, and the halving pyramid stops at two levels.
+        // Its quarter-res Gaussian still fits the 12-fetch pass where the
+        // transition takes over.
         [Test]
-        public void TransitionStartsBeforeAFourthPyramidLevel()
+        public void HalvingPyramidStopsAtTwoLevels()
         {
-            Assert.That(TransitionKernel.StartSigma, Is.LessThan(LevelSwitchSigma(SmallKernel.NextLevelFadeStart, 3)));
+            SmallKernel.PyramidDown binomial = SmallKernel.PyramidDown.Binomial;
+            Assert.That(LevelSwitchSigma(binomial.fadeStart, 2, binomial), Is.GreaterThan(SmallKernel.HalvedSigma));
+            SmallKernel.PyramidDown halved = SmallKernel.PyramidDown.Halved;
+            Assert.That(SmallKernel.MaxPyramidLevels, Is.EqualTo(2));
+            var workspace = new SmallKernel.Workspace();
+            double sigma = Below(TransitionKernel.StartSigma);
+            double up = SmallKernel.OuterUpsample(workspace, SmallKernel.OuterUpsampleBilinear(sigma));
+            double variance = SmallKernel.OuterLevelVariance(BlurMath.RequestedVariance(sigma), up);
+            double quarter = halved.CoarseVariance(halved.CoarseVariance(variance));
+            Assert.That(SmallKernel.GaussianRows(workspace, quarter), Is.LessThanOrEqualTo(12));
+        }
+
+        static double Below(double x) => x - 1e-9;
+
+        // Below sigma 5.9 the pyramid runs the binomial down and its
+        // constants; from 6.3 [1, 3, 3, 1] / 8, which FragDownHalve runs as
+        // fetches 3/4 texel either side. In between, every down keeps unit
+        // mass and a point centered on either source parity, and the level
+        // variance is the down's own plus the cubic Up's.
+        [Test]
+        public void PyramidDownTurnsFromBinomialToHalving()
+        {
+            SmallKernel.PyramidDown binomial = SmallKernel.PyramidDown.At(5.8999f);
+            Assert.That(binomial.far, Is.EqualTo(43));
+            Assert.That(binomial.levelVariance, Is.EqualTo(SmallKernel.LevelVariance));
+            Assert.That(binomial.fadeStart, Is.EqualTo(SmallKernel.NextLevelFadeStart));
+            Assert.That(binomial.fadeEnd, Is.EqualTo(SmallKernel.NextLevelFadeEnd));
+            var taps = new UnityEngine.Vector4[3];
+            binomial.Pack(taps);
+            Assert.That(taps, Is.EqualTo(BinomialDown));
+            for (int h = 0; h < 6; h++)
+                Assert.That(binomial.Weight(h), Is.EqualTo(BinomialWeights[h]).Within(1e-15));
+
+            SmallKernel.PyramidDown halved = SmallKernel.PyramidDown.At((float)SmallKernel.HalvedSigma);
+            Assert.That(halved.Halves);
+            double[] expected = { 0, 0.125, 0.375, 0.375, 0.125, 0 };
+            for (int h = 0; h < 6; h++)
+                Assert.That(halved.Weight(h), Is.EqualTo(expected[h]).Within(1e-15));
+
+            int previousFar = 44;
+            for (int i = 0; i <= 40; i++)
+            {
+                double sigma = SmallKernel.HalveStartSigma +
+                    (SmallKernel.HalvedSigma - SmallKernel.HalveStartSigma) * i / 40;
+                SmallKernel.PyramidDown down = SmallKernel.PyramidDown.At(sigma);
+                Assert.That(down.far, Is.LessThanOrEqualTo(previousFar));
+                previousFar = down.far;
+                double mass = 0, even = 0, odd = 0, variance = 0;
+                for (int h = 0; h < 6; h++)
+                {
+                    double weight = down.Weight(h);
+                    mass += weight;
+                    // Source pixel 2j - 2 + h sits h - 2.5 from the half-res center.
+                    variance += weight * (h - 2.5) * (h - 2.5);
+                    if (h % 2 == 0)
+                        even += weight;
+                    else
+                        odd += weight;
+                }
+                Assert.That(mass, Is.EqualTo(1).Within(1e-12));
+                Assert.That(even, Is.EqualTo(0.5).Within(1e-12));
+                Assert.That(odd, Is.EqualTo(0.5).Within(1e-12));
+                Assert.That(down.levelVariance, Is.EqualTo(variance + 4 * SmallKernel.CubicUpVariance).Within(1e-12));
+
+                // FragDown's three fetches split onto the same six pixels.
+                down.Pack(taps);
+                var split = new double[6];
+                foreach (UnityEngine.Vector4 tap in taps)
+                {
+                    double near = Math.Floor(tap.x + 0.5) - 0.5;
+                    double fraction = BlurMath.Snap(tap.x) - near;
+                    // Pixel 2j - 2 + h sits h - 2.5 from the half-res center.
+                    int h = (int)(near + 2.5);
+                    split[h] += tap.y * (1 - fraction);
+                    if (fraction > 0)
+                        split[h + 1] += tap.y * fraction;
+                }
+                for (int h = 0; h < 6; h++)
+                    Assert.That(split[h], Is.EqualTo(down.Weight(h)).Within(1e-7), $"far {down.far}, pixel {h}");
+                Assert.That(down.fadeStart, Is.LessThan(down.fadeEnd));
+            }
         }
 
         // The sigma at which the Gaussian `levels` downsamples below the
         // outermost level reaches the variance `coarse`.
-        static double LevelSwitchSigma(double coarse, int levels)
+        static double LevelSwitchSigma(double coarse, int levels, in SmallKernel.PyramidDown down)
         {
             double target = coarse;
             for (int i = 0; i < levels; i++)
-                target = SmallKernel.LevelVariance + 4 * target;
+                target = down.levelVariance + 4 * target;
             var workspace = new SmallKernel.Workspace();
             double low = 2.4, high = 24;
             for (int i = 0; i < 100; i++)
@@ -175,7 +272,7 @@ namespace SteplessGaussianBlur.Tests
             // Down's variance from its three fetches. Source pixel centers sit
             // at half-integers from the half-res texel's center.
             double down = 0;
-            foreach (UnityEngine.Vector4 tap in SmallKernel.BinomialDown)
+            foreach (UnityEngine.Vector4 tap in BinomialDown)
             {
                 double near = Math.Floor(tap.x + 0.5) - 0.5;
                 double fraction = tap.x - near;
@@ -184,7 +281,7 @@ namespace SteplessGaussianBlur.Tests
             // The level's down, coarse Gaussian and Up, in source pixels²,
             // add up to the request.
             double requested = BlurMath.RequestedVariance(sigma);
-            double coarse = SmallKernel.CoarseVariance(SmallKernel.OuterLevelVariance(requested, reported));
+            double coarse = SmallKernel.PyramidDown.Binomial.CoarseVariance(SmallKernel.OuterLevelVariance(requested, reported));
             Assert.That(down + 4 * coarse + 4 * variance, Is.EqualTo(requested).Within(2e-6));
         }
 
@@ -246,8 +343,8 @@ namespace SteplessGaussianBlur.Tests
             downUp.PackUp(up);
             for (int i = 0; i < 3; i++)
             {
-                Assert.That(down[i].x, Is.EqualTo(SmallKernel.BinomialDown[i].x).Within(1e-6));
-                Assert.That(down[i].y, Is.EqualTo(SmallKernel.BinomialDown[i].y).Within(1e-6));
+                Assert.That(down[i].x, Is.EqualTo(BinomialDown[i].x).Within(1e-6));
+                Assert.That(down[i].y, Is.EqualTo(BinomialDown[i].y).Within(1e-6));
             }
             for (int i = 0; i < 4; i++)
             {
@@ -255,7 +352,7 @@ namespace SteplessGaussianBlur.Tests
                 Assert.That(up[i].y, Is.EqualTo(SmallKernel.CubicUp[i].y).Within(1e-6));
             }
             Assert.That(downUp.halfResGaussianVariance,
-                Is.EqualTo(SmallKernel.CoarseVariance(FittedDownUp.End)).Within(1e-6));
+                Is.EqualTo(SmallKernel.PyramidDown.Binomial.CoarseVariance(FittedDownUp.End)).Within(1e-6));
         }
 
         [Test]
@@ -453,6 +550,32 @@ namespace SteplessGaussianBlur.Tests
             Assert.That(mass, Is.EqualTo(1).Within(1e-6));
             Assert.That(mean, Is.EqualTo(0).Within(1e-6));
             Assert.That(second / mass, Is.EqualTo(kernel.GaussianVariance).Within(5e-6));
+        }
+
+        // The transition's halve, written out from its own blend: the far
+        // fraction rounded as the sampler holds it, the outer weight keeping
+        // the inner minus the far texel at 1/8, texel 0 the left center texel.
+        [Test]
+        public void TransitionHalveIsTheBlendedDown()
+        {
+            var transition = new TransitionKernel();
+            for (int i = 0; i <= 100; i++)
+            {
+                float sigma = (float)(15.9 + i * 0.9 / 100);
+                transition.Prepare(sigma);
+                double settled = transition.Settled;
+                double blended = SmallKernel.DownOuterMass * (1 - settled) + 0.125 * settled;
+                double farMass = SmallKernel.DownOuterMass * (1 - settled) * SmallKernel.DownOuterFarFraction;
+                double inner = BlurMath.Snap(1 - farMass / blended);
+                double outer = 0.125 / (2 * inner - 1);
+                string at = $"sigma {sigma:R}";
+                Assert.That(transition.Halve[0].x, Is.EqualTo(inner - 2).Within(1e-6), at);
+                Assert.That(transition.Halve[0].y, Is.EqualTo(outer).Within(1e-6), at);
+                Assert.That(transition.Halve[1].x, Is.EqualTo(0.5).Within(1e-6), at);
+                Assert.That(transition.Halve[1].y, Is.EqualTo(1 - 2 * outer).Within(1e-6), at);
+                Assert.That(transition.Halve[2].x, Is.EqualTo(3 - inner).Within(1e-6), at);
+                Assert.That(transition.Halve[2].y, Is.EqualTo(outer).Within(1e-6), at);
+            }
         }
 
         [Test]

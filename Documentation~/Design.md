@@ -93,13 +93,16 @@ slightly off. Below 1.72 the down's outer weights correct it. Over
 ## Pyramid (sigma 2.40–11.5)
 
 ![One level: binomial down to half resolution, a Gaussian, cubic up](Images/blur-pyramid-1.svg)
-![Two levels: binomial down to quarter resolution, a Gaussian, cubic up, then cubic turning bilinear up](Images/blur-pyramid-2.svg)
-![Three levels: binomial down to eighth resolution, a Gaussian, cubic up twice, then bilinear up](Images/blur-pyramid-3.svg)
+![Two levels: 2x down to quarter resolution, a Gaussian, cubic up, then cubic turning bilinear up](Images/blur-pyramid-2.svg)
 
-- Each level is a 6-tap binomial 2x down and a 2x cubic B-spline up,
-  except the outermost up below.
+- Each level is a 2x down and a 2x cubic B-spline up, except the
+  outermost up below.
+- The down is the 6-tap binomial below 5.9 (nine fetches) and
+  [1, 3, 3, 1] / 8 from 6.3 (four fetches). Over 5.9–6.3 one turns into
+  the other.
 - A second level fades in over sigma 3.94–4.22 (3.86–4.15 in a reduced
-  output), a third over 8.00–8.55.
+  output). There is no third: the quarter-res Gaussian reaches 12
+  fetches by 11.5.
 - From 4.25 to 4.5 the outermost up blends from cubic to bilinear: one
   fetch per pixel instead of four.
 
@@ -107,14 +110,14 @@ slightly off. Below 1.72 the down's outer weights correct it. Over
 
 ![4x down to quarter, 2x down to eighth resolution (6 taps blending to 4), Gaussian X and Y, cubic up to quarter, bilinear up to full](Images/blur-wide-entry.svg)
 
-From the pyramid, the transition keeps the Gaussian at 1/8 and the 2x
-cubic up to 1/4. From the wide layout, it takes the outer passes:
+Like a third pyramid level, the transition runs the Gaussian at 1/8 and a
+2x cubic up to 1/4. From the wide layout, it takes the outer passes:
 
 - One 4x down replaces two 2x downs.
 - One 4x bilinear up replaces two 2x ups.
 
-It takes over from the pyramid's third level at 11.5. From there its
-error stays under 1%, and it runs faster than that level.
+It takes over from the pyramid at 11.5. From there its error stays
+under 1%.
 
 Its passes stay fixed up to 24; only weights change:
 
@@ -255,7 +258,7 @@ Names used in the code:
 | Term | Meaning |
 |---|---|
 | Grid 1/N | A texture at 1/N resolution |
-| Down | The small layout's 2x down |
+| Down | The small layout's 2x down; DownHalve once it is [1, 3, 3, 1] / 8 |
 | Up | The small layout's and the transition's 2x up, fitted or cubic |
 | LinearUp | The pyramid's outermost up, once fully bilinear |
 | Quarter | The 4x down |

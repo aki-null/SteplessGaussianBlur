@@ -123,17 +123,29 @@ namespace SteplessGaussianBlur.Tests
             }
             double bilinear = SmallKernel.OuterUpsampleBilinear(sigma, reduced);
             double upVariance = SmallKernel.OuterUpsample(workspace, bilinear);
-            return PyramidLevel(source, SmallKernel.OuterLevelVariance(variance, upVariance), bilinear, outputScale);
+            return PyramidLevel(source, SmallKernel.OuterLevelVariance(variance, upVariance),
+                SmallKernel.PyramidDown.At(sigma), 0, bilinear, outputScale);
         }
 
-        static double[] PyramidLevel(double[] source, double variance, double outerBilinear, int outputScale = 1)
+        static double[] PyramidLevel(double[] source, double variance, in SmallKernel.PyramidDown down,
+            int levels, double outerBilinear, int outputScale = 1)
         {
-            if (variance < SmallKernel.NextLevelFadeStart)
+            if (variance < down.fadeStart || levels >= SmallKernel.MaxPyramidLevels)
                 return Rows(source, variance, Crossfade.None);
-            if (variance < SmallKernel.NextLevelFadeEnd)
-                return Rows(source, variance, Crossfade.IntoNextLevel);
-            double[] half = Down(source, SmallKernel.BinomialDown);
-            half = PyramidLevel(half, SmallKernel.CoarseVariance(variance), 0);
+            if (variance < down.fadeEnd)
+                return Rows(source, variance, Crossfade.IntoNextLevel, down);
+            double[] half;
+            if (down.Halves)
+            {
+                half = DownHalve(source);
+            }
+            else
+            {
+                var taps = new Vector4[3];
+                down.Pack(taps);
+                half = Down(source, taps);
+            }
+            half = PyramidLevel(half, down.CoarseVariance(variance), down, levels + 1, 0);
             // A reduced output stops before the bilinear Up.
             if (outputScale == 2)
                 return half;
@@ -151,8 +163,11 @@ namespace SteplessGaussianBlur.Tests
         // as the kernels build them. RecordSmallPass interleaves both phases
         // at upload; GaussianPassesUploadBothPhasesOfEachTap checks that.
         static double[] Rows(double[] source, double variance, Crossfade crossfade)
+            => Rows(source, variance, crossfade, SmallKernel.PyramidDown.Binomial);
+
+        static double[] Rows(double[] source, double variance, Crossfade crossfade, in SmallKernel.PyramidDown down)
         {
-            int count = SmallKernel.GaussianRows(workspace, variance, crossfade);
+            int count = SmallKernel.GaussianRows(workspace, variance, crossfade, down);
             var output = new double[source.Length];
             for (int x = 0; x < output.Length; x++)
             {
@@ -179,6 +194,15 @@ namespace SteplessGaussianBlur.Tests
                     sum += taps[k].y * Sample(source, 2 * j + 0.5 + Uploaded(taps[k].x));
                 output[j] = sum;
             }
+            return output;
+        }
+
+        // FragDownHalve: two fetches of 1/2, 3/4 texel either side of the center.
+        static double[] DownHalve(double[] source)
+        {
+            var output = new double[DivideUp(source.Length, 2)];
+            for (int j = 0; j < output.Length; j++)
+                output[j] = 0.5 * Sample(source, 2 * j + 0.5 - 0.75) + 0.5 * Sample(source, 2 * j + 0.5 + 0.75);
             return output;
         }
 
