@@ -57,10 +57,18 @@ arrays are rejected. Once XR is initialized, `TextureXR.slices` stays 2,
 so check the camera before passing an array. A `BlurTarget` holds a 2D
 texture.
 
+## Quality
+
+`BlurQuality.High` (`blur.Quality`, or the renderer feature's
+**Quality**) runs a full-resolution Gaussian below sigma 2.24 and joins
+`Fast` by 2.4. Its error stays under 0.5% up to sigma 2.3, where `Fast`
+reaches 6%. There it costs up to 1.75 times as much on M4. Switching
+while a blur animates through sigma 1.46–2.4 makes a visible step.
+
 ## Warmup
 
-`WarmUpShaders(colorFormat)` prepares a source format's variants,
-including a `BlurTarget`'s pick for it; `includeXR: true` adds stereo.
-Pipeline creation can finish asynchronously, so the first draw can still
-stall. Player builds strip keyword combinations the recorder never
-selects.
+`WarmUpShaders(colorFormat)` prepares a source format's variants for
+both qualities, including a `BlurTarget`'s pick for it; `includeXR: true`
+adds stereo. Pipeline creation can finish asynchronously, so the first
+draw can still stall. Player builds strip keyword combinations the
+recorder never selects.

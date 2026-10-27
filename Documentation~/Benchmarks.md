@@ -62,6 +62,7 @@ a Gaussian elsewhere.
 
 - Its error stays near 1% except at sigma 1.4–2.3, where it reaches 6.2%.
   There, a moving highlight's peak also varies by up to 6.7%.
+  [`BlurQuality.High`](#high-quality) keeps that range under 0.5%.
 - Skia's coarse reductions make its output depend on where a highlight
   falls. From sigma 6 its error ranges from 7% to 241%, a highlight can
   move by 22 px or vanish, and at sigma 48 and 96 the output stays put
@@ -74,6 +75,25 @@ a Gaussian elsewhere.
 ## MacBook Air (M4)
 
 ![M4 GPU time and Gaussian error](Benchmarks/speed-quality.svg)
+
+### High quality
+
+`BlurQuality.High`, measured on M4 only, with the same scene and timing.
+From sigma 1.3 to 2.4 it takes 1.24–1.75 times as long as Fast, about as long
+as a separable Gaussian, and keeps the error under 0.5% up to sigma 2.3.
+From 2.4 the two are the same.
+
+![M4 GPU time and Gaussian error for Fast, High and a separable Gaussian](Benchmarks/high-quality-m4.svg)
+
+| Sigma | Fast ms | High ms | Fast error | High error |
+|---|---|---|---|---|
+| 1.46 | 1.62 | 2.02 | 1.5% | 0.3% |
+| 1.62 | 1.24 | 2.01 | 5.9% | 0.3% |
+| 1.8 | 1.50 | 2.06 | 2.8% | 0.2% |
+| 2.0 | 1.49 | 2.04 | 1.5% | 0.2% |
+| 2.2 | 1.48 | 2.58 | 0.9% | 0.4% |
+| 2.3 | 1.59 | 2.58 | 1.1% | 0.4% |
+| 2.4 | 1.56 | 1.56 | 0.9% | 0.9% |
 
 ## Other devices
 
@@ -205,7 +225,7 @@ These numbers are for points. They are not visibility thresholds.
 
 ## Data
 
-- [M4 timing](Benchmarks/timing-m4.csv) · [iPhone timing](Benchmarks/timing-iphone17.csv) · [Galaxy S25 Ultra timing](Benchmarks/timing-s25.csv) · [Galaxy S26 timing](Benchmarks/timing-s26.csv) · [Galaxy Tab S11 Ultra timing](Benchmarks/timing-tabs11.csv) · [Galaxy A35 timing](Benchmarks/timing-a35.csv) · [Quality](Benchmarks/quality-m4.csv)
+- [M4 timing](Benchmarks/timing-m4.csv) · [iPhone timing](Benchmarks/timing-iphone17.csv) · [Galaxy S25 Ultra timing](Benchmarks/timing-s25.csv) · [Galaxy S26 timing](Benchmarks/timing-s26.csv) · [Galaxy Tab S11 Ultra timing](Benchmarks/timing-tabs11.csv) · [Galaxy A35 timing](Benchmarks/timing-a35.csv) · [Quality](Benchmarks/quality-m4.csv) · [High quality](Benchmarks/high-quality-m4.csv)
 - Original Dual Blur: timing ([M4](Benchmarks/fixed-dual-timing-m4.csv), [iPhone](Benchmarks/fixed-dual-timing-iphone17.csv)) · [quality](Benchmarks/fixed-dual-quality-m4.csv)
 - Skia: [native validation](Benchmarks/native-skia-validation.json) · [per position](Benchmarks/native-skia-phases.csv)
 - Continuity: [sweep](Benchmarks/continuity-m4.csv) · [switches](Benchmarks/continuity-switches-m4.csv) · [motion](Benchmarks/motion-m4.csv) · [error split](Benchmarks/quality-split-m4.csv)

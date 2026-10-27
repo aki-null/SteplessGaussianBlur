@@ -96,6 +96,20 @@ Shader "Hidden/SteplessGaussianBlur"
         }
         Pass
         {
+            Name "Horizontal12"
+            HLSLPROGRAM
+            #pragma fragment FragHorizontal12
+            ENDHLSL
+        }
+        Pass
+        {
+            Name "Vertical12"
+            HLSLPROGRAM
+            #pragma fragment FragVertical12
+            ENDHLSL
+        }
+        Pass
+        {
             Name "Down"
             HLSLPROGRAM
             #pragma fragment FragDown

@@ -77,6 +77,65 @@ namespace SteplessGaussianBlur.Tests
             }
         }
 
+        // High's switches: the start of its fade, its handover to the pyramid,
+        // and every change of fetch count, where it changes shader pass.
+        // Below variance 1 High records what Fast does, which
+        // LayoutBoundariesRemainContinuous covers.
+        [UnityTest]
+        public IEnumerator HighQualityBoundariesRemainContinuous()
+        {
+            var boundaries = new List<double> { SmallKernel.HighQualityFadeStart, FittedDownUp.End };
+            var workspace = new SmallKernel.Workspace();
+            const int steps = 4000;
+            int Count(double v) => SmallKernel.GaussianRows(workspace, v, SmallKernel.Crossfade.IntoFirstLevel);
+            for (int i = 1; i < steps; i++)
+            {
+                double low = 1 + (FittedDownUp.End - 1) * (i - 1) / steps;
+                double high = 1 + (FittedDownUp.End - 1) * i / steps;
+                int lowCount = Count(low);
+                if (Count(high) == lowCount)
+                    continue;
+                for (int j = 0; j < 60; j++)
+                {
+                    double middle = (low + high) * 0.5;
+                    if (Count(middle) == lowCount)
+                        low = middle;
+                    else
+                        high = middle;
+                }
+                boundaries.Add(high);
+            }
+            Assert.That(boundaries.Count, Is.GreaterThan(4), "fetch-count switches found");
+            foreach (double variance in boundaries)
+            {
+                float sigma = SigmaForVariance(variance);
+                const float step = 0.00001f;
+                Color[] below = null;
+                Color[] above = null;
+                yield return RunCase(new BlurCase(33, 25, sigma - step)
+                {
+                    Quality = BlurQuality.High,
+                    ReceiveResult = pixels => below = pixels
+                });
+                yield return RunCase(new BlurCase(33, 25, sigma + step)
+                {
+                    Quality = BlurQuality.High,
+                    ReceiveResult = pixels => above = pixels
+                });
+                AssertPixels(above, below, 3 * HalfSpacingBelowOne, HalfSpacingBelowOne,
+                    $"High boundary variance {variance}");
+            }
+        }
+
+        // Odd sizes exercise borders and parity; 5×3 is narrower than the
+        // 4-sigma reach, so every fetch clamps at an edge.
+        [UnityTest]
+        public IEnumerator HighQualityMatchesReference(
+            [Values(1.62f, 1.8f, 2.3f, 2.399f)] float sigma, [Values(33, 5)] int width)
+        {
+            yield return RunCase(new BlurCase(width, width == 33 ? 25 : 3, sigma) { Quality = BlurQuality.High });
+        }
+
         static float SigmaForVariance(double variance)
         {
             double low = 0;

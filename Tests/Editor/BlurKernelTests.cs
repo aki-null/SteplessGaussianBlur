@@ -297,10 +297,90 @@ namespace SteplessGaussianBlur.Tests
             }
         }
 
+        // In high quality the full-res row stays a plain tapered Gaussian
+        // until its fade into the first pyramid level.
+        [TestCase(0.5)]
+        [TestCase(1.6)]
+        [TestCase(2.2)]
+        public void FirstLevelRowsMatchPlainGaussianBelowFade(double sigma)
+        {
+            var first = new SmallKernel.Workspace();
+            var plain = new SmallKernel.Workspace();
+            double variance = BlurMath.RequestedVariance(sigma);
+            int count = SmallKernel.GaussianRows(first, variance, SmallKernel.Crossfade.IntoFirstLevel);
+            Assert.That(count, Is.EqualTo(SmallKernel.GaussianRows(plain, variance)));
+            Assert.That(first.taps, Is.EqualTo(plain.taps));
+        }
+
+        // High-quality rows above twelve fetches fall back to the looped passes.
+        [Test]
+        public void FirstLevelRowsFitMaxFetches()
+        {
+            var workspace = new SmallKernel.Workspace();
+            for (int i = 0; i <= 2000; i++)
+            {
+                double variance = FittedDownUp.End * i / 2000 * (1 - 1e-12);
+                int count = SmallKernel.GaussianRows(workspace, variance, SmallKernel.Crossfade.IntoFirstLevel);
+                Assert.That(count, Is.LessThanOrEqualTo(SmallKernel.MaxFetches), $"variance {variance}");
+            }
+        }
+
+        // At the end of its fade the row is the pyramid level that replaces
+        // it from FittedDownUp.End: Down, half-res Gaussian, cubic Up. Packing
+        // that chain into one full-res row of grid-snapped pairs leaves an L1
+        // step of 0.0014, like the handover to real Down/Up passes in
+        // LayoutSwitchesKeepTheResponse.
+        [TestCase(48)]
+        [TestCase(49)]
+        public void FirstLevelRowEndsAtThePyramidLevel(int point)
+        {
+            var workspace = new SmallKernel.Workspace();
+            int count = SmallKernel.GaussianRows(workspace, FittedDownUp.End * (1 - 1e-12),
+                SmallKernel.Crossfade.IntoFirstLevel);
+            double[] pyramid = ExecutedPipeline.Respond(SigmaAbove(FittedDownUp.End), 96, point);
+            double change = 0;
+            for (int x = point - 24; x <= point + 24; x++)
+            {
+                // Output x reads source x + offset; the point sits at offset point - x.
+                int start = (x & 1) * SmallKernel.MaxFetches;
+                double weight = 0;
+                for (int k = 0; k < count; k++)
+                {
+                    UnityEngine.Vector4 tap = workspace.taps[start + k];
+                    double position = x + BlurMath.Snap(tap.x);
+                    int first = (int)Math.Floor(position);
+                    double fraction = position - first;
+                    if (first == point) weight += tap.y * (1 - fraction);
+                    if (first + 1 == point) weight += tap.y * fraction;
+                }
+                change += Math.Abs(weight - pyramid[x]);
+            }
+            Assert.That(change, Is.LessThan(0.0015));
+        }
+
+        // The smallest float sigma whose requested variance is at least `variance`.
+        static float SigmaAbove(double variance)
+        {
+            double low = 0, high = 64;
+            for (int i = 0; i < 100; i++)
+            {
+                double middle = (low + high) * 0.5;
+                if (BlurMath.RequestedVariance(middle) < variance)
+                    low = middle;
+                else
+                    high = middle;
+            }
+            float sigma = (float)high;
+            while (BlurMath.RequestedVariance(sigma) < variance)
+                sigma = BitConverter.Int32BitsToSingle(BitConverter.SingleToInt32Bits(sigma) + 1);
+            return sigma;
+        }
+
         [TestCase(0.5, "None")]
         [TestCase(3.0, "None")]
         [TestCase(2.2, "IntoDownUp")]
         [TestCase(2.5, "IntoDownUp")]
+        [TestCase(5.0, "IntoFirstLevel")]
         [TestCase(3.3, "IntoNextLevel")]
         [TestCase(3.7, "IntoNextLevel")]
         public void KernelWeightsAreNormalized(double variance, string crossfade)

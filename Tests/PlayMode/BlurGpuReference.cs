@@ -111,11 +111,13 @@ namespace SteplessGaussianBlur.Tests
                 2, StageKind.Upsample, 2, phases: 2, stride: 2);
         }
 
-        static NodeStage SmallPlan(float sigma, int outputScale)
+        static NodeStage SmallPlan(float sigma, int outputScale, BlurQuality quality)
         {
             var source = new NodeStage();
             var workspace = new SmallKernel.Workspace();
             double variance = BlurMath.RequestedVariance(sigma);
+            if (quality == BlurQuality.High && variance < FittedDownUp.End)
+                return SmallRow(source, workspace, variance, SmallKernel.Crossfade.IntoFirstLevel);
             if (variance < SmallKernel.DownUpPassesStart)
                 return SmallRow(source, workspace, variance, SmallKernel.Crossfade.IntoDownUp);
             if (variance >= FittedDownUp.End)
@@ -190,8 +192,8 @@ namespace SteplessGaussianBlur.Tests
                 Stage(current, null, 0, StageKind.BilinearUpsample, scale, 0.5 / scale - 0.5);
         }
 
-        static NodeStage Plan(float sigma, int outputScale = 1) => sigma < TransitionKernel.StartSigma
-            ? SmallPlan(sigma, outputScale) : WidePlan(sigma, outputScale);
+        static NodeStage Plan(float sigma, int outputScale = 1, BlurQuality quality = BlurQuality.Fast) =>
+            sigma < TransitionKernel.StartSigma ? SmallPlan(sigma, outputScale, quality) : WidePlan(sigma, outputScale);
 
         // Variance of the discrete Gaussian, faded by smoothstep over its final
         // half sigma before four sigma (Documentation~/Design.md#conventions).
@@ -222,7 +224,8 @@ namespace SteplessGaussianBlur.Tests
 
         /// <summary>Blurs an image with the reference pipeline.</summary>
         /// <param name="outputScale">1, or a reduced output's scale: the result is that much smaller.</param>
-        internal static Color[] Blur(Color[] source, int width, int height, float sigma, int outputScale = 1)
+        internal static Color[] Blur(Color[] source, int width, int height, float sigma, int outputScale = 1,
+            BlurQuality quality = BlurQuality.Fast)
         {
             if (sigma < 1e-5f || width == 1 && height == 1)
                 return (Color[])source.Clone();
@@ -236,7 +239,7 @@ namespace SteplessGaussianBlur.Tests
                 Array.Fill(result, mean);
                 return result;
             }
-            NodeStage plan = Plan(sigma, outputScale);
+            NodeStage plan = Plan(sigma, outputScale, quality);
             var horizontal = new double[height, outputWidth, 4];
             var row = new double[width];
             for (int y = 0; y < height; y++)

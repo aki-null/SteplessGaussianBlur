@@ -59,6 +59,10 @@ summing absolute differences, worst at sigma 1.4–2.3
 - In the full-resolution Gaussian, the switch to X then Y is at sigma
   0.75.
 - From 1.46 to 1.62 the Gaussian fades in the fitted down/up pair.
+- With `BlurQuality.High` the Gaussian runs to 2.40 with its full taper
+  and never uses the fitted pair. From 2.24 to 2.40 it fades in the first
+  pyramid level. Its rows of nine to twelve fetches run an unrolled
+  twelve-fetch pass; looped, they took up to 1.6 times as long on M4.
 
 ## Fitted down/up pair (sigma 1.62–2.40)
 

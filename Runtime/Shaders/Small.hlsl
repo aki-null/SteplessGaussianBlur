@@ -148,6 +148,18 @@ float4 FragVertical8(Varyings input) : SV_Target
     return PassOutput(SeparableUnrolled(SmallPosition(input), true, 8));
 }
 
+float4 FragHorizontal12(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    return PassOutput(SeparableUnrolled(SmallPosition(input), false, 12));
+}
+
+float4 FragVertical12(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    return PassOutput(SeparableUnrolled(SmallPosition(input), true, 12));
+}
+
 // Target pixel center j + 0.5 maps to source coordinate 2j + 1,
 // between full-resolution source pixels 2j and 2j + 1.
 float4 FragDown(Varyings input) : SV_Target

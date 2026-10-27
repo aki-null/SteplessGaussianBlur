@@ -23,6 +23,11 @@ namespace SteplessGaussianBlur
         TextureHandle RecordSmall(RenderGraph graph, in RecordContext context, float sigma, double variance)
         {
             TextureDesc input = context.input;
+            // In high quality the full-res row runs to 2.40, crossfading from
+            // 2.24 into the first pyramid level, which then replaces it.
+            if (quality == BlurQuality.High && variance < FittedDownUp.End)
+                return RecordGaussian(graph, context, context.source, input.width, input.height,
+                    halo: 0, variance, Crossfade.IntoFirstLevel, FinalTarget(graph, context, "Stepless Gaussian"));
             // From sigma 1.46 this row crossfades into the fitted Down/Up,
             // which then replaces it at 1.62.
             if (variance < SmallKernel.DownUpPassesStart)
@@ -129,21 +134,21 @@ namespace SteplessGaussianBlur
             bool direct = output.IsValid() && !separable;
             TextureHandle result = direct ? output : CreateTarget(graph, context, width + 2 * halo, height + 2 * halo,
                 name, fullResolution: fullResolution);
-            RecordSmallPass(graph, context, source, result, separable ? AxisPass(count, false) : Gaussian2DPass(count),
+            RecordSmallPass(graph, context, source, result, separable ? AxisPass(count, false, crossfade) : Gaussian2DPass(count),
                 kernel.taps, count, name, sourceHalo: halo, targetHalo: direct ? 0 : halo);
             if (!separable)
                 return result;
 
             TextureHandle vertical = output.IsValid() ? output :
                 CreateTarget(graph, context, width + 2 * halo, height + 2 * halo, "Stepless Gaussian Y");
-            return RecordSmallPass(graph, context, result, vertical, AxisPass(count, true), kernel.taps, count,
+            return RecordSmallPass(graph, context, result, vertical, AxisPass(count, true, crossfade), kernel.taps, count,
                 "Stepless Gaussian Y", sourceHalo: halo, targetHalo: output.IsValid() ? 0 : halo);
         }
 
         // RecordGaussian goes separable from four fetches per axis.
         static ShaderPass Gaussian2DPass(int count) => count <= 2 ? ShaderPass.Gaussian2D2 : ShaderPass.Gaussian2D3;
 
-        static ShaderPass AxisPass(int count, bool vertical)
+        internal static ShaderPass AxisPass(int count, bool vertical, Crossfade crossfade)
         {
             // Unrolled passes pad shorter rows with zero-weight taps; unrolling
             // six to eight fetches made sigma 3-3.8 blurs 7-10% faster on M4.
@@ -151,19 +156,28 @@ namespace SteplessGaussianBlur
                 return vertical ? ShaderPass.Vertical5 : ShaderPass.Horizontal5;
             if (count >= 6 && count <= 8)
                 return vertical ? ShaderPass.Vertical8 : ShaderPass.Horizontal8;
+            // High's full-res rows reach twelve fetches; looped, sigma 2.2-2.3
+            // took up to 1.6x as long on M4.
+            if (count >= 9 && count <= 12 && crossfade == Crossfade.IntoFirstLevel)
+                return vertical ? ShaderPass.Vertical12 : ShaderPass.Horizontal12;
             return vertical ? ShaderPass.Vertical : ShaderPass.Horizontal;
         }
 
         static bool IsGaussian2DPass(ShaderPass pass)
             => pass == ShaderPass.Gaussian2D2 || pass == ShaderPass.Gaussian2D3;
 
+        // Crossfades that change AxisPass's choice.
+        static readonly Crossfade[] AxisPassCrossfades = { Crossfade.None, Crossfade.IntoFirstLevel };
+
         // Any pass Gaussian2DPass or AxisPass selects.
-        static bool IsGaussianPass(ShaderPass pass)
+        internal static bool IsGaussianPass(ShaderPass pass)
         {
             for (int count = 1; count <= SmallKernel.MaxFetches; count++)
             {
-                if (pass == Gaussian2DPass(count) || pass == AxisPass(count, false) || pass == AxisPass(count, true))
-                    return true;
+                foreach (Crossfade crossfade in AxisPassCrossfades)
+                    if (pass == Gaussian2DPass(count) || pass == AxisPass(count, false, crossfade) ||
+                        pass == AxisPass(count, true, crossfade))
+                        return true;
             }
             return false;
         }

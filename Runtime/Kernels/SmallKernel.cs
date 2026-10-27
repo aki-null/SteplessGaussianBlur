@@ -41,8 +41,16 @@ namespace SteplessGaussianBlur
             /// <summary>Full resolution, sigma 1.46 to 1.62: FittedDownUp's Down then Up.</summary>
             IntoDownUp,
             /// <summary>A pyramid level's Gaussian: one more pyramid level.</summary>
-            IntoNextLevel
+            IntoNextLevel,
+            /// <summary>Full resolution in high quality, sigma 2.24 to 2.40: the first pyramid level.</summary>
+            IntoFirstLevel
         }
+
+        // In high quality the full-res row keeps its whole taper and skips
+        // the fitted Down/Up; it crossfades into the first pyramid level,
+        // which then replaces it at FittedDownUp.End.
+        internal const double HighQualityFadeStartSigma = 2.24;
+        internal static readonly double HighQualityFadeStart = RequestedVariance(HighQualityFadeStartSigma);
 
         // Down/Up passes take over where the fitted Up gains its fourth tap.
         // Below that, the row crossfading into them fits five fetches.
@@ -163,9 +171,11 @@ namespace SteplessGaussianBlur
                 if (fade > 0)
                     downUp = FittedDownUp.At(variance);
             }
-            else if (crossfade == Crossfade.IntoNextLevel)
+            else if (crossfade != Crossfade.None)
             {
-                fade = Smooth((variance - NextLevelFadeStart) / (NextLevelFadeEnd - NextLevelFadeStart));
+                fade = crossfade == Crossfade.IntoNextLevel
+                    ? Smooth((variance - NextLevelFadeStart) / (NextLevelFadeEnd - NextLevelFadeStart))
+                    : Smooth((variance - HighQualityFadeStart) / (FittedDownUp.End - HighQualityFadeStart));
                 // The next level's own Gaussian, as its passes will run it.
                 // Its variance is below NextLevelFadeStart, so it is plain.
                 // Built first: it reuses workspace.gaussian.

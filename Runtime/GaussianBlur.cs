@@ -18,6 +18,21 @@ namespace SteplessGaussianBlur
     public sealed partial class GaussianBlur : IDisposable
     {
         bool disposed;
+        BlurQuality quality;
+
+        /// <summary>Speed or accuracy for blurs recorded from now on. Defaults to <see cref="BlurQuality.Fast"/>.</summary>
+        /// <remarks>Changing it while a blur animates through sigma 1.46–2.4 makes a visible step.</remarks>
+        /// <exception cref="ArgumentOutOfRangeException">The value is not a defined <see cref="BlurQuality"/>.</exception>
+        public BlurQuality Quality
+        {
+            get => quality;
+            set
+            {
+                if (value != BlurQuality.Fast && value != BlurQuality.High)
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown blur quality.");
+                quality = value;
+            }
+        }
 
         /// <summary>Creates a reusable recorder with the package shader, from URP's graphics settings.</summary>
         /// <exception cref="InvalidOperationException">URP is not the active render pipeline.</exception>

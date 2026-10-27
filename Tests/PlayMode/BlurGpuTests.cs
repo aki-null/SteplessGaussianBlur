@@ -149,6 +149,7 @@ namespace SteplessGaussianBlur.Tests
             // Record into this target (RecordTo), then copy it out; set Reduced.
             internal BlurTarget Target;
             internal bool CompareReference = true;
+            internal BlurQuality Quality;
 
             internal BlurCase(int width, int height, float strength)
             {
@@ -205,7 +206,7 @@ namespace SteplessGaussianBlur.Tests
                 var pixels = new Color[active.x * active.y];
                 for (int y = 0; y < active.y; y++)
                     Array.Copy(sourcePixels, eye * c.Width * c.Height + y * c.Width, pixels, y * active.x, active.x);
-                Array.Copy(BlurGpuReference.Blur(pixels, active.x, active.y, sigma, scale), 0,
+                Array.Copy(BlurGpuReference.Blur(pixels, active.x, active.y, sigma, scale, c.Quality), 0,
                     expected, eye * outputSize.x * outputSize.y, outputSize.x * outputSize.y);
             }
             RenderTexture source = CreateTarget(c.Width, c.Height, format: c.Format,
@@ -281,6 +282,7 @@ namespace SteplessGaussianBlur.Tests
                         }
                     }
                     TextureHandle importedOutput = graph.ImportTexture(output);
+                    blur.Quality = c.Quality;
                     BlurStrength blurStrength = c.ReferenceResolution == 0 ? c.Strength :
                         BlurStrength.AtReferenceResolution(c.Strength, c.ReferenceResolution);
                     BlurSource blurSource = c.ViewportSize == default ? importedSource :
