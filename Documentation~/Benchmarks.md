@@ -176,8 +176,9 @@ chart shows variation beyond that.
 Stepless keeps the blur centered on the point and its brightness steady,
 except near sigma 1.6, the same range where its error rises. Smol and
 Skia work on a coarse grid, so from sigma 8 their blur falls behind the
-point. Smol's output stops moving from sigma 24, Skia's from 48; Skia
-also flickers at 18–24. Interpolated Dual Blur flickers most at small
+point. From sigma 24 Smol's output, and from 48 Skia's, is the same in
+every frame: the blur stays put while the point moves away. Skia also
+flickers at 18–24. Interpolated Dual Blur flickers most at small
 sigma, below its first level.
 
 These charts show how the blurs differ on a single point. They do not say

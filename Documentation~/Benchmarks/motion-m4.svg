@@ -615,7 +615,7 @@ L -2 0
      </g>
     </g>
     <g id="text_15">
-     <text style="fill: #334155; font: 11px 'DejaVu Sans'; text-anchor: middle" x="14.750656" y="119.232" transform="rotate(-90 14.750656 119.232)">Distance (px)</text>
+     <text style="fill: #334155; font: 11px 'DejaVu Sans'; text-anchor: middle" x="14.750656" y="119.232" transform="rotate(-90 14.750656 119.232)">Distance (px), lower is better</text>
     </g>
    </g>
    <g id="patch_3">
@@ -737,7 +737,7 @@ z
     </g>
    </g>
    <g id="text_16">
-    <text style="fill: #1e293b; font: 700 13px 'DejaVu Sans'; text-anchor: start" x="66.528" y="26.288" transform="rotate(-0 66.528 26.288)">How far the blur's center is from the point</text>
+    <text style="fill: #1e293b; font: 700 13px 'DejaVu Sans'; text-anchor: start" x="66.528" y="26.288" transform="rotate(-0 66.528 26.288)">Farthest the blur's center gets from the moving point · ideal 0</text>
    </g>
    <g id="line2d_79">
     <path d="M 75.67691 157.570538 
@@ -1376,7 +1376,7 @@ L 483.84 305.489711
      </g>
     </g>
     <g id="text_34">
-     <text style="fill: #334155; font: 11px 'DejaVu Sans'; text-anchor: middle" x="28.748156" y="368.064" transform="rotate(-90 28.748156 368.064)">Flicker beyond ideal (%)</text>
+     <text style="fill: #334155; font: 11px 'DejaVu Sans'; text-anchor: middle" x="28.748156" y="368.064" transform="rotate(-90 28.748156 368.064)">Extra flicker (%), lower is better</text>
     </g>
    </g>
    <g id="patch_6">
@@ -1420,8 +1420,6 @@ L 256.243835 367.508631
 L 316.43281 361.38121 
 L 326.660422 334.091291 
 L 351.641103 311.126234 
-L 411.830078 425.974237 
-L 472.019053 446.324527 
 " clip-path="url(#pa75c117766)" style="fill: none; stroke-dasharray: 6.4,3.2; stroke-dashoffset: 0; stroke: #c26616; stroke-width: 1.6"/>
     <g clip-path="url(#pa75c117766)">
      <use xlink:href="#m633a9ccf16" x="75.67691" y="388.788491" style="fill: #c26616; stroke: #c26616"/>
@@ -1431,8 +1429,6 @@ L 472.019053 446.324527
      <use xlink:href="#m633a9ccf16" x="316.43281" y="361.38121" style="fill: #c26616; stroke: #c26616"/>
      <use xlink:href="#m633a9ccf16" x="326.660422" y="334.091291" style="fill: #c26616; stroke: #c26616"/>
      <use xlink:href="#m633a9ccf16" x="351.641103" y="311.126234" style="fill: #c26616; stroke: #c26616"/>
-     <use xlink:href="#m633a9ccf16" x="411.830078" y="425.974237" style="fill: #c26616; stroke: #c26616"/>
-     <use xlink:href="#m633a9ccf16" x="472.019053" y="446.324527" style="fill: #c26616; stroke: #c26616"/>
     </g>
    </g>
    <g id="line2d_158">
@@ -1442,9 +1438,6 @@ L 171.074179 395.756714
 L 256.243835 365.354493 
 L 316.43281 366.123926 
 L 326.660422 371.266926 
-L 351.641103 408.951207 
-L 411.830078 429.310734 
-L 472.019053 449.681043 
 " clip-path="url(#pa75c117766)" style="fill: none; stroke-dasharray: 8,3.2,1.6,3.2; stroke-dashoffset: 0; stroke: #b640dc; stroke-width: 1.6"/>
     <g clip-path="url(#pa75c117766)">
      <use xlink:href="#mbd558468c8" x="75.67691" y="402.741581" style="fill: #b640dc; stroke: #b640dc"/>
@@ -1453,13 +1446,10 @@ L 472.019053 449.681043
      <use xlink:href="#mbd558468c8" x="256.243835" y="365.354493" style="fill: #b640dc; stroke: #b640dc"/>
      <use xlink:href="#mbd558468c8" x="316.43281" y="366.123926" style="fill: #b640dc; stroke: #b640dc"/>
      <use xlink:href="#mbd558468c8" x="326.660422" y="371.266926" style="fill: #b640dc; stroke: #b640dc"/>
-     <use xlink:href="#mbd558468c8" x="351.641103" y="408.951207" style="fill: #b640dc; stroke: #b640dc"/>
-     <use xlink:href="#mbd558468c8" x="411.830078" y="429.310734" style="fill: #b640dc; stroke: #b640dc"/>
-     <use xlink:href="#mbd558468c8" x="472.019053" y="449.681043" style="fill: #b640dc; stroke: #b640dc"/>
     </g>
    </g>
    <g id="text_35">
-    <text style="fill: #1e293b; font: 700 13px 'DejaVu Sans'; text-anchor: start" x="66.528" y="275.12" transform="rotate(-0 66.528 275.12)">How much the blur's peak brightness flickers, beyond an ideal blur's</text>
+    <text style="fill: #1e293b; font: 700 13px 'DejaVu Sans'; text-anchor: start" x="66.528" y="275.12" transform="rotate(-0 66.528 275.12)">Peak-brightness flicker beyond an ideal blur's · ideal 0</text>
    </g>
    <g id="line2d_159">
     <path d="M 75.67691 382.523117 
@@ -1484,46 +1474,27 @@ L 472.019053 398.51774
      <use xlink:href="#md5af9619c9" x="472.019053" y="398.51774" style="fill: #087f5b; stroke: #087f5b"/>
     </g>
    </g>
-   <g id="line2d_160">
-    <path d="M 411.830078 425.974237 
-" clip-path="url(#pa75c117766)" style="fill: none; stroke: #c26616; stroke-width: 1.5; stroke-linecap: square"/>
-    <g clip-path="url(#pa75c117766)">
-     <use xlink:href="#m6c7710a206" x="411.830078" y="425.974237" style="fill: #c26616; stroke: #c26616; stroke-width: 2"/>
-    </g>
-   </g>
-   <g id="line2d_161">
-    <path d="M 472.019053 446.324527 
-" clip-path="url(#pa75c117766)" style="fill: none; stroke: #c26616; stroke-width: 1.5; stroke-linecap: square"/>
-    <g clip-path="url(#pa75c117766)">
-     <use xlink:href="#m6c7710a206" x="472.019053" y="446.324527" style="fill: #c26616; stroke: #c26616; stroke-width: 2"/>
-    </g>
-   </g>
-   <g id="line2d_162">
-    <path d="M 351.641103 408.951207 
-" clip-path="url(#pa75c117766)" style="fill: none; stroke: #b640dc; stroke-width: 1.5; stroke-linecap: square"/>
-    <g clip-path="url(#pa75c117766)">
-     <use xlink:href="#mb697a7477f" x="351.641103" y="408.951207" style="fill: #b640dc; stroke: #b640dc; stroke-width: 2"/>
-    </g>
-   </g>
-   <g id="line2d_163">
-    <path d="M 411.830078 429.310734 
-" clip-path="url(#pa75c117766)" style="fill: none; stroke: #b640dc; stroke-width: 1.5; stroke-linecap: square"/>
-    <g clip-path="url(#pa75c117766)">
-     <use xlink:href="#mb697a7477f" x="411.830078" y="429.310734" style="fill: #b640dc; stroke: #b640dc; stroke-width: 2"/>
-    </g>
-   </g>
-   <g id="line2d_164">
-    <path d="M 472.019053 449.681043 
-" clip-path="url(#pa75c117766)" style="fill: none; stroke: #b640dc; stroke-width: 1.5; stroke-linecap: square"/>
-    <g clip-path="url(#pa75c117766)">
-     <use xlink:href="#mb697a7477f" x="472.019053" y="449.681043" style="fill: #b640dc; stroke: #b640dc; stroke-width: 2"/>
-    </g>
-   </g>
    <g id="text_36">
-    <text style="fill: #b640dc; font: 10px 'DejaVu Sans'; text-anchor: start" x="478.499053" y="458.443902" transform="rotate(-0 478.499053 458.443902)">Smol</text>
+    <g id="patch_8">
+     <path d="M 331.640422 377.605988 
+L 359.626359 377.605988 
+L 359.626359 364.927863 
+L 331.640422 364.927863 
+z
+" style="fill: #ffffff; opacity: 0.85"/>
+    </g>
+    <text style="fill: #b640dc; font: 10px 'DejaVu Sans'; text-anchor: start" x="333.140422" y="374.026301" transform="rotate(-0 333.140422 374.026301)">Smol</text>
    </g>
    <g id="text_37">
-    <text style="fill: #c26616; font: 10px 'DejaVu Sans'; text-anchor: start" x="478.499053" y="449.083902" transform="rotate(-0 478.499053 449.083902)">Skia</text>
+    <g id="patch_9">
+     <path d="M 356.621103 317.465296 
+L 380.666416 317.465296 
+L 380.666416 304.787171 
+L 356.621103 304.787171 
+z
+" style="fill: #ffffff; opacity: 0.85"/>
+    </g>
+    <text style="fill: #c26616; font: 10px 'DejaVu Sans'; text-anchor: start" x="358.121103" y="313.885609" transform="rotate(-0 358.121103 313.885609)">Skia</text>
    </g>
    <g id="text_38">
     <text style="fill: #087f5b; font: 700 10px 'DejaVu Sans'; text-anchor: start" x="478.499053" y="401.277115" transform="rotate(-0 478.499053 401.277115)">Stepless</text>
@@ -1533,7 +1504,8 @@ L 472.019053 398.51774
    </g>
   </g>
   <g id="text_40">
-   <text style="fill: #64748b; font: 9px 'DejaVu Sans'; text-anchor: start" x="66.528" y="508.032" transform="rotate(-0 66.528 508.032)">A bright point moves 1/16 px per frame for 64 frames, blurred at each sigma. ×: the output did not move at all.</text>
+   <text style="fill: #64748b; font: 9px 'DejaVu Sans'" transform="translate(66.528 497.953969)">Each sigma is its own run: a bright point moves 1/16 px per frame for 64 frames under a fixed blur.</text>
+   <text style="fill: #64748b; font: 9px 'DejaVu Sans'" transform="translate(66.528 508.032)">×: all 64 frames identical; the blur stayed put while the point moved. No flicker shown.</text>
   </g>
  </g>
  <defs>
