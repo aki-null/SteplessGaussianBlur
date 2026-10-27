@@ -62,6 +62,17 @@ Or add it to `Packages/manifest.json`:
 
 Append `#<tag>` to pin a release.
 
+The package adds its shader to `UniversalRenderPipelineGlobalSettings.asset`.
+After removing the package, that entry stays with a missing type. Clear it
+from an editor script:
+
+```csharp
+var settings = GraphicsSettings.GetSettingsForRenderPipeline<UniversalRenderPipeline>();
+SerializationUtility.ClearAllManagedReferencesWithMissingTypes(settings);
+EditorUtility.SetDirty(settings);
+AssetDatabase.SaveAssets();
+```
+
 ## Usage
 
 ### Blur the camera
