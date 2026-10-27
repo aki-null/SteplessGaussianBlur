@@ -7,7 +7,7 @@ using Crossfade = SteplessGaussianBlur.SmallKernel.Crossfade;
 
 namespace SteplessGaussianBlur
 {
-    // Passes of sigma below 16.1; their chain and coefficients are in
+    // Passes of sigma below 11.5; their chain and coefficients are in
     // Kernels/SmallKernel.cs and Kernels/FittedDownUp.cs, shaders in
     // Shaders/Small.hlsl. From sigma 4.5 the outermost Up is bilinear; a
     // reduced output's is from 3, and where a scale divides both sides the

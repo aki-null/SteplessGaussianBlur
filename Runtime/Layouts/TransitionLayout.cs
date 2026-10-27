@@ -4,7 +4,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace SteplessGaussianBlur
 {
-    // Passes of sigma 16.1 to 24; their chain and coefficients are in
+    // Passes of sigma 11.5 to 24; their chain and coefficients are in
     // Kernels/TransitionKernel.cs, shaders in Shaders/Transition.hlsl. The
     // pyramid's cubic Up and the wide layout's Final reconstruct, so a
     // reduced output ends at 1/4 as in the wide layout.

@@ -270,6 +270,7 @@ def _transition(name):
 
 
 START_SIGMA = _transition('StartSigma')
+SETTLE_START_SIGMA = _transition('SettleStartSigma')
 SETTLED_SIGMA = _transition('SettledSigma')
 WIDE_FADE_SIGMA = _transition('WideFadeSigma')
 END_SIGMA = _transition('EndSigma')
@@ -294,7 +295,7 @@ class Transition:
     """TransitionKernel at one sigma, with the virtual level's up fractions as input."""
     def __init__(self, sigma, wide_up):
         squared = sigma*sigma
-        self.settled = smooth((squared-START_SIGMA**2)/(SETTLED_SIGMA**2-START_SIGMA**2))
+        self.settled = smooth((squared-SETTLE_START_SIGMA**2)/(SETTLED_SIGMA**2-SETTLE_START_SIGMA**2))
         blended = PYRAMID_OUTER_MASS*(1-self.settled)+BINOMIAL_OUTER_MASS*self.settled
         far = PYRAMID_OUTER_MASS*(1-self.settled)*PYRAMID_OUTER_FAR_FRACTION
         inner = snap(1-far/blended)

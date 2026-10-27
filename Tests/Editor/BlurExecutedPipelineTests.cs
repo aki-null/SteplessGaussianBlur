@@ -30,7 +30,7 @@ namespace SteplessGaussianBlur.Tests
         static readonly float[] Switches =
         {
             0.740902f, 1.25f, 1.46f, 1.6160f, 1.7237f, 1.80f, 2.40f, 3.937810f, 4.218166f, 4.25f, 4.5f,
-            8.002574f, 8.554936f,
+            8.002574f, 8.554936f, 11.5f,
             16.1f, 16.1875f, 16.6f, 21, 24, 64, 70, 140
         };
 
@@ -54,7 +54,7 @@ namespace SteplessGaussianBlur.Tests
         // Worst summed absolute difference from the tapered Gaussian, per range
         // of sigma: the shape each layout reaches with exact width.
         static double ShapeBound(float sigma) =>
-            sigma < 0.740902f ? 0.007 : sigma < 2.4f ? 0.052 : sigma < 16.1f ? 0.011 : 0.0075;
+            sigma < 0.740902f ? 0.007 : sigma < 2.4f ? 0.052 : sigma < TransitionKernel.StartSigma ? 0.011 : 0.0075;
 
         [Test]
         public void EveryLayoutKeepsMassCenterAndRequestedWidth()
@@ -74,7 +74,7 @@ namespace SteplessGaussianBlur.Tests
                     var m = ExecutedPipeline.Measure(response, position);
                     Assert.That(m.mass, Is.EqualTo(1).Within(1e-6), $"sigma {sigma:R}, phase {p}: energy");
                     // The fixed quarter-resolution pass centers each source
-                    // phase within 1/128 pixel; below sigma 16.1 rounding to the
+                    // phase within 1/128 pixel; below the transition rounding to the
                     // sampler grid leaves a little more.
                     double center = sigma >= TransitionKernel.StartSigma ? 1.0 / 128 + 1e-6 : 0.011;
                     Assert.That(Math.Abs(m.mean), Is.LessThan(center), $"sigma {sigma:R}, phase {p}: center");
@@ -290,8 +290,11 @@ namespace SteplessGaussianBlur.Tests
         [TestCase(0.3, 0.740902, 55)]
         [TestCase(0.740902, 1.616, 45)]
         [TestCase(1.616, 2.4, 25)]
-        [TestCase(2.4, 16.1, 12)]
-        [TestCase(16.1, 24, 18)]
+        // The pyramid's 15.1 is at sigma 9.73, where a fetch steps to the
+        // next grid point; the sweep reached it once it ended at 11.5.
+        [TestCase(2.4, 11.5, 16)]
+        [TestCase(9.72, 9.74, 16)]
+        [TestCase(11.5, 24, 18)]
         [TestCase(24, 256, 12)]
         public void ResponseChangesSmoothlyWithSigma(double lo, double hi, double bound)
         {
@@ -317,8 +320,8 @@ namespace SteplessGaussianBlur.Tests
         // Where the layouts are designed to meet, the budget is the size of
         // an ordinary step to the next sampler grid point (up to 5.5e-4).
         // The full-res row's handover to real down/up passes (sigma 1.616),
-        // the transition and the pitch switches get their measured steps
-        // with a little room.
+        // the transition (0.47% at 11.5) and the pitch switches get their
+        // measured steps with a little room.
         [TestCase(0.740902f, 0.0006)]
         [TestCase(0.75f, 0.0006)]
         [TestCase(1.46f, 0.0006)]
@@ -331,7 +334,8 @@ namespace SteplessGaussianBlur.Tests
         [TestCase(4.25f, 0.0006)]
         [TestCase(4.5f, 0.0006)]
         [TestCase(8.554936f, 0.0006)]
-        [TestCase(16.1f, 0.0030)]
+        [TestCase(11.5f, 0.0055)]
+        [TestCase(16.1f, 0.0006)]
         [TestCase(16.6f, 0.0006)]
         [TestCase(21f, 0.0006)]
         [TestCase(24f, 0.0015)]
@@ -358,7 +362,7 @@ namespace SteplessGaussianBlur.Tests
             var taps = new Vector4[4];
             for (int i = 0; i < 2000; i++)
             {
-                double sigma = 0.3 * Math.Pow(16.1 / 0.3, i / 1999.0);
+                double sigma = 0.3 * Math.Pow(TransitionKernel.StartSigma / 0.3, i / 1999.0);
                 double variance = BlurMath.RequestedVariance(sigma);
                 // Each Gaussian stage where a layout uses it.
                 SmallKernel.Crossfade crossfade = variance < SmallKernel.DownUpPassesStart ?

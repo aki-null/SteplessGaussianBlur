@@ -25,7 +25,7 @@ namespace SteplessGaussianBlur.Tests
                 // RecordReduced's own texture, then a BlurTarget.
                 foreach (BlurTarget written in new[] { null, target })
                 {
-                    foreach (float sigma in new[] { 2.9f, 3f, 3.5f, 4.5f, 8.6f, 16f, 16.125f, 21f, 23.99f })
+                    foreach (float sigma in new[] { 2.9f, 3f, 3.5f, 4.5f, 8.6f, 11.5f, 12f, 16f, 16.125f, 21f, 23.99f })
                         yield return RunCase(new BlurCase(66, 50, sigma) { Reduced = true, Target = written });
                     yield return RunCase(new BlurCase(33, 25, 3.5f) { Reduced = true, Target = written });
                     yield return RunCase(new BlurCase(64, 48, 24) { Reduced = true, Target = written });

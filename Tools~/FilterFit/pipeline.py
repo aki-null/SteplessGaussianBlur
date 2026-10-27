@@ -1,4 +1,4 @@
-"""1D model of the layouts around sigma 16.1 to 24, sampled the way the shaders sample.
+"""1D model of the layouts around sigma 11.5 to 24, sampled the way the shaders sample.
 
 Signals are arrays of shape (texels, impulses) on one grid. Array index n is
 the shaders' node n, and positions are in node units: node n sits at

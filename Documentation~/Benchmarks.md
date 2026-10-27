@@ -130,7 +130,7 @@ traffic: reads, caches and framebuffer compression are excluded.
 
 Animating strength, measured on one point:
 
-- From sigma 4, Stepless's output changes at 0.92–1.09 times an ideal
+- From sigma 4, Stepless's output changes at 0.91–1.10 times an ideal
   Gaussian's pace (5th–95th percentile over 0.6% sigma steps), so an
   animated blur grows evenly. At 1–4 the range is 0.95–1.29.
 - Below sigma 1, fetch positions step along the sampler's 1/256 grid, and
@@ -138,7 +138,7 @@ Animating strength, measured on one point:
 - Grid steps are its largest jumps. With few fetches, one moving 1/256 texel
   shifts much of the weight: at sigma 0.74 a single step equals an ideal
   Gaussian's change over 0.5% of strength, and near 1.1 and 1.6 over
-  0.2%. Layout switches are smaller; the largest, at 16.1, equals 0.13%.
+  0.2%. Layout switches are smaller; the largest, at 11.5, equals 0.23%.
 - Interpolated Dual Blur's pace swings between 0.5 and 1.7 times the
   ideal's within each level, so it speeds up and slows down every
   octave. Below sigma 1 it is 0.1–0.9 times, barely changing.

@@ -91,7 +91,7 @@ namespace SteplessGaussianBlur.Tests
         [UnityTest]
         public IEnumerator WideTransitionAndExtendedRadiiMatchCpu()
         {
-            foreach (float sigma in new[] { 16.09f, 16.125f, 16.1875f, 16.6f, 21f, 23.99f, 24f, 70f, 139.999f, 140f, 1024f })
+            foreach (float sigma in new[] { 11.5f, 13f, 16.09f, 16.125f, 16.1875f, 16.6f, 21f, 23.99f, 24f, 70f, 139.999f, 140f, 1024f })
                 yield return RunCase(new BlurCase(33, 25, sigma));
             // A 33x25 image is near its corner average from sigma 70. These
             // keep enough extent for shape and phase errors to show.

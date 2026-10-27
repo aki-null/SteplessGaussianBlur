@@ -159,7 +159,7 @@ namespace SteplessGaussianBlur.Tests
             var workspace = new SmallKernel.Workspace();
             double target = SmallKernel.LevelVariance + 4 * coarse;
             double low = FittedDownUp.End;
-            double high = BlurMath.RequestedVariance(TransitionKernel.StartSigma);
+            double high = BlurMath.RequestedVariance(TransitionKernel.EndSigma);
             for (int i = 0; i < 100; i++)
             {
                 double middle = (low + high) * 0.5;
@@ -184,7 +184,7 @@ namespace SteplessGaussianBlur.Tests
                 point[channel] = amplitude;
                 input[(height / 2 + channel) * width + width / 2 + channel] = point;
             }
-            foreach (float boundary in new[] { 16.1f, 24f })
+            foreach (float boundary in new[] { 11.5f, 24f })
             {
                 Color[] below = null, above = null;
                 yield return RunCase(new BlurCase(width, height, boundary - 0.0001f)
@@ -208,10 +208,11 @@ namespace SteplessGaussianBlur.Tests
                     // relative to the HDR input's peak would hide shape changes.
                     double change = difference / amplitude;
                     TestContext.WriteLine($"Endpoint sigma {boundary}, phase {channel}, L1 change {change:R}");
-                    // Measured worst phases on M4: 0.40% at sigma 16.1 and 0.17%
-                    // at sigma 24 (Tools~/FilterFit/fit_transition.py fractions).
-                    // Keep separate regression budgets.
-                    double budget = boundary < 20 ? 0.0045 : 0.0020;
+                    // Measured worst phases on M4: 0.77% at sigma 11.5, where
+                    // the transition replaces the pyramid's third level, and
+                    // 0.17% at sigma 24 (Tools~/FilterFit/fit_transition.py
+                    // fractions). Keep separate regression budgets.
+                    double budget = boundary < 20 ? 0.0085 : 0.0020;
                     Assert.That(change, Is.LessThan(budget),
                         $"Endpoint response change, sigma {boundary}, phase {channel}");
                 }
@@ -274,7 +275,7 @@ namespace SteplessGaussianBlur.Tests
                             string label = $"sigma {sigma}, axis {axis}, phase {4 * batch + channel}";
                             Assert.That(mass / amplitude, Is.EqualTo(1).Within(1e-4), "Point energy, " + label);
                             // The quarter-resolution pass centers each source phase
-                            // within 1/128 pixel; below sigma 16.1 rounding to the
+                            // within 1/128 pixel; below the transition rounding to the
                             // sampler grid leaves a little more.
                             Assert.That(Math.Abs(firstMoment / mass),
                                 Is.LessThan(sigma >= TransitionKernel.StartSigma ? 0.0081 : 0.011),

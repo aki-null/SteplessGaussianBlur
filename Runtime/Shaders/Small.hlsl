@@ -1,4 +1,4 @@
-// Sigma below 16.1: full-resolution Gaussian rows, the fitted down/up pair
+// Sigma below 11.5: full-resolution Gaussian rows, the fitted down/up pair
 // and the binomial/cubic pyramid. C# side: Layouts/SmallLayout.cs and
 // Kernels/SmallKernel.cs.
 

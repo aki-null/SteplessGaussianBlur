@@ -5,12 +5,12 @@ using static SteplessGaussianBlur.BlurMath;
 namespace SteplessGaussianBlur
 {
     /// <summary>
-    /// Filters of the small layouts, sigma below 16.1 (Layouts/SmallLayout.cs).
+    /// Filters of the small layouts, sigma below 11.5 (Layouts/SmallLayout.cs).
     /// Each filter is a 1D row; the shaders run it on X and then on Y.
     /// </summary>
     /// <remarks>
     /// <code>
-    /// sigma 0 ......... 1.62 ................... 2.40 ......................... 16.1
+    /// sigma 0 ......... 1.62 ................... 2.40 ......................... 11.5
     ///       Gaussian      Down -> [Gaussian] -> Up    Down -> ... Gaussian ... -> Up
     ///       (full res)    FittedDownUp (half res)     pyramid: binomial down, cubic up
     /// </code>

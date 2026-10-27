@@ -4,12 +4,12 @@ The blur runs one of three layouts, picked by sigma. A layout is a chain
 of render passes. As sigma grows, the passes' weights change, and at some
 sigmas the chain gains passes.
 
-- Small, below sigma 16.1. As sigma grows it takes three forms: a
+- Small, below sigma 11.5. As sigma grows it takes three forms: a
   full-resolution Gaussian, a fitted down/up pair, and a pyramid.
-- Transition, from 16.1 to 24.
+- Transition, from 11.5 to 24.
 - Wide, from 24.
 
-![Full-res Gaussian below sigma 1.62, fitted down/up pair to 2.40, pyramid to 16.1, transition to 24, wide above; hatching where a level fades in](Images/sigma-layouts.svg)
+![Full-res Gaussian below sigma 1.62, fitted down/up pair to 2.40, pyramid to 11.5, transition to 24, wide above; hatching where a level fades in](Images/sigma-layouts.svg)
 
 ## Terms
 
@@ -90,7 +90,7 @@ slightly off. Below 1.72 the down's outer weights correct it. Over
 1.72–1.80 the Gaussian at 1/2 takes over that correction.
 [`Tools~/FilterFit`](../Tools~/FilterFit/README.md) reruns the fit.
 
-## Pyramid (sigma 2.40–16.1)
+## Pyramid (sigma 2.40–11.5)
 
 ![One level: binomial down to half resolution, a Gaussian, cubic up](Images/blur-pyramid-1.svg)
 ![Two levels: binomial down to quarter resolution, a Gaussian, cubic up, then cubic turning bilinear up](Images/blur-pyramid-2.svg)
@@ -103,7 +103,7 @@ slightly off. Below 1.72 the down's outer weights correct it. Over
 - From 4.25 to 4.5 the outermost up blends from cubic to bilinear: one
   fetch per pixel instead of four.
 
-## Transition layout (sigma 16.1–24)
+## Transition layout (sigma 11.5–24)
 
 ![4x down to quarter, 2x down to eighth resolution (6 taps blending to 4), Gaussian X and Y, cubic up to quarter, bilinear up to full](Images/blur-wide-entry.svg)
 
@@ -112,6 +112,9 @@ cubic up to 1/4. From the wide layout, it takes the outer passes:
 
 - One 4x down replaces two 2x downs.
 - One 4x bilinear up replaces two 2x ups.
+
+It takes over from the pyramid's third level at 11.5. From there its
+error stays under 1%, and it runs faster than that level.
 
 Its passes stay fixed up to 24; only weights change:
 
@@ -159,10 +162,10 @@ that level for real.
 ### What the fade can't hide
 
 Inside the small layout, a fade ends on exactly the level drawn next. At
-16.1, 24 and each doubling, the downs and ups change too. A virtual level
+11.5, 24 and each doubling, the downs and ups change too. A virtual level
 can't reproduce that:
 
-- 16.1 switches passes without a fade.
+- 11.5 switches passes without a fade.
 - At 24, the virtual level's 2x up and the 2x cubic up give way to one 4x
   cubic up.
 - At each doubling, the virtual level's 2x up and the 4x cubic up give way
@@ -172,7 +175,7 @@ Neither the transition nor the wide layout draws the virtual level's 2x
 up, so its weights are free to tune. `Tools~/FilterFit/fit_transition.py`
 places that up's fetches so the blur matches across 24 and each doubling.
 Doublings past sigma 560 reuse 560's fit. The largest remaining jump is at
-16.1. It is about as large as changing sigma by 0.13%
+11.5. It is about as large as changing sigma by 0.23%
 ([benchmarks](Benchmarks.md#continuity-and-motion)).
 
 ## Reduced output

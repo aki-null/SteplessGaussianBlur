@@ -155,7 +155,7 @@ A fitted downsample to half resolution and a fitted upsample back. Their weights
 ![Fitted down to half resolution, then fitted up](Documentation~/Images/blur-down-up.svg)
 ![Fitted down to half resolution, a Gaussian there, then fitted up](Documentation~/Images/blur-half-core.svg)
 
-### Sigma 2.40–16.1
+### Sigma 2.40–11.5
 
 A pyramid: binomial downsamples until the remaining
 blur fits a small Gaussian, then cubic upsamples. Levels crossfade in at
@@ -166,7 +166,7 @@ one fetch instead of four.
 ![Two levels: binomial down to quarter resolution, a Gaussian, cubic up, then cubic turning bilinear up](Documentation~/Images/blur-pyramid-2.svg)
 ![Three levels: binomial down to eighth resolution, a Gaussian, cubic up twice, then bilinear up](Documentation~/Images/blur-pyramid-3.svg)
 
-### Sigma 16.1–24
+### Sigma 11.5–24
 
 A fixed six-pass bridge: quarter, then eighth
 resolution, a Gaussian, then cubic upsampling to 1/4 and bilinear to full.

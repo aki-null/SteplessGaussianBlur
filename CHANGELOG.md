@@ -7,20 +7,27 @@
 - `BlurQuality.High` (`GaussianBlur.Quality`, or the renderer feature's
   **Quality**): a full-resolution Gaussian below sigma 2.24, joining
   `Fast` by 2.4. It keeps the error under 0.5% up to sigma 2.3, where
-  `Fast` reaches 6%, and costs up to 1.75 times as much there on M4.
+  `Fast`'s error peaks at 6% over 1.4–2.3, and costs up to 1.6 times as
+  much there on M4.
 
 ### Changed
 
 - `RecordReduced` and a default `BlurTarget` return a half-size texture
   from sigma 3 instead of 4.5. On M4 at 4K they take about half the GPU
-  time over sigma 3–4.5 (0.8 ms against 1.6 ms; 30% less near 4.1).
+  time from sigma 4 to 4.5 (0.7–0.9 ms against 1.3–1.7 ms).
   Their error is 1.1% at sigma 3, against 0.3% for `Record`, and at most
   1.3% near 4.1, against 1.0%. To read pixels or sample without
   filtering in this range, use `BlurTarget(fullSize: true)` or `Record`.
-- Pyramid crossfades near sigma 4.1–4.2 (4.05–4.15 in reduced output)
-  and 8.4–8.5 run unrolled 10-fetch passes: about 20% faster on M4,
-  11–21% on iPhone 17 and 2–5% on Adreno 830, unchanged on Mali-G68. `BlurQuality.High` rows of 9 or 10
-  fetches use them too.
+- Blurs near sigma 4.1–4.2 and 8.4–8.5 (4.05–4.15 in reduced output)
+  are faster: about 20% on M4, 11–21% on iPhone 17 and 2–5% on Adreno
+  830, unchanged on Mali-G68. So is `BlurQuality.High` near 2.0–2.24.
+- Blurs from sigma 11.5 to 16.1 are faster: 24–30% on M4, 26% on Adreno
+  830 and 15–26% on Immortalis-G925. The layout used from 16.1 now starts
+  at 11.5. Error stays under 1%: 0.9% at 11.5, against 0.4% before.
+  Animating strength across 11.5 changes the output as much as a 0.46%
+  change of sigma.
+- `RecordReduced` and a default `BlurTarget` return a quarter-size texture
+  from sigma 11.5 instead of 16.1, when both sides divide by 4.
 
 ### Fixed
 

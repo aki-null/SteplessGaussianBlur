@@ -5,14 +5,14 @@ using static SteplessGaussianBlur.BlurMath;
 namespace SteplessGaussianBlur
 {
     /// <summary>
-    /// Coefficients of the transition layout, sigma 16.1 to 24, which carries
-    /// the small pyramid over to the wide layout without a visible jump.
+    /// Coefficients of the transition layout, sigma 11.5 to 24, which takes
+    /// over from the small pyramid and carries it to the wide layout.
     /// </summary>
     /// <remarks>
     /// <code>
     /// pass          grid (source px per texel)   coefficients
     /// Quarter       1 -> 4    fixed 8-tap row     Quarter (constant)
-    /// Halve         4 -> 8    3 fetches, then 2   Halve: the pyramid's 2x down at 16.1; from 16.6 the wide halve
+    /// Halve         4 -> 8    3 fetches, then 2   Halve: the pyramid's 2x down to 16.1; from 16.6 the wide halve
     /// Gaussian X/Y  8         one row per parity  Gaussian (rebuilt per sigma)
     /// Up            8 -> 4    cubic B-spline      the pyramid's (SmallKernel.CubicUp)
     /// Final         4 -> 1    one bilinear fetch  (the wide layout's, at scale 4)
@@ -21,13 +21,14 @@ namespace SteplessGaussianBlur
     /// A reduced output of scale R stops at the 1/R grid, as in the wide layout.
     /// </para>
     /// <para>
-    /// The passes never change between 16.1 and 24. Blur width comes from the
+    /// The passes never change between 11.5 and 24. Blur width comes from the
     /// Gaussian alone: it gets the variance the request leaves after the
     /// other passes add theirs.
     /// </para>
     /// <para>
-    /// Below 16.1 the pyramid has three levels, so its Gaussian runs on the
-    /// same eighth grid as this one. The wide layout above 24 runs its
+    /// From sigma 8 the pyramid has three levels, so its Gaussian runs on the
+    /// same eighth grid as this one; this layout replaces its third level
+    /// from 11.5 with fewer passes. The wide layout above 24 runs its
     /// Gaussian one level coarser. To match it, from 21 to 24 the Gaussian row
     /// crossfades with a virtual level: one more halve, Gaussian and 2x up,
     /// written out as one row on the eighth grid instead of drawn. The
@@ -39,11 +40,13 @@ namespace SteplessGaussianBlur
     /// </remarks>
     internal sealed class TransitionKernel
     {
-        // Where the layout starts (before the pyramid would add a fourth
-        // level, at 16.14), where its halve has settled into the binomial,
-        // where the crossfade toward the wide layout starts, and where the
-        // layout ends.
-        internal const double StartSigma = 16.1;
+        // Where the layout starts, where its halve starts and ends settling
+        // into the binomial, where the crossfade toward the wide layout
+        // starts, and where the layout ends. From 11.5 it is faster than the
+        // pyramid's third level on every GPU measured and stays within 1% of
+        // the Gaussian.
+        internal const double StartSigma = 11.5;
+        internal const double SettleStartSigma = 16.1;
         internal const double SettledSigma = 16.6;
         const double WideFadeSigma = 21;
         internal const double EndSigma = 24;
@@ -85,7 +88,7 @@ namespace SteplessGaussianBlur
         /// <summary>Source pixels per texel of the Up's output, which Final magnifies.</summary>
         internal const int ReconstructionPitch = 4;
 
-        /// <summary>0 at sigma 16.1, halving like the pyramid; 1 from 16.6, settled into this layout.</summary>
+        /// <summary>0 to sigma 16.1, halving like the pyramid; 1 from 16.6, settled into this layout.</summary>
         internal double Settled { get; private set; }
         internal double GaussianVariance { get; private set; }
 
@@ -111,8 +114,8 @@ namespace SteplessGaussianBlur
                 return;
 
             double squared = sigma * (double)sigma;
-            Settled = Smooth((squared - StartSigma * StartSigma) /
-                (SettledSigma * SettledSigma - StartSigma * StartSigma));
+            Settled = Smooth((squared - SettleStartSigma * SettleStartSigma) /
+                (SettledSigma * SettledSigma - SettleStartSigma * SettleStartSigma));
             double halveVariance = PrepareHalve();
 
             // Variance budget: the eighth-grid Gaussian supplies what the

@@ -138,7 +138,7 @@ namespace SteplessGaussianBlur.Tests
         [TestCase(4.25, false)]
         [TestCase(4.375, false)]
         [TestCase(4.5, false)]
-        [TestCase(16.09, false)]
+        [TestCase(11.49, false)]
         [TestCase(2.75, true)]
         [TestCase(2.875, true)]
         [TestCase(3.0, true)]
@@ -462,13 +462,13 @@ namespace SteplessGaussianBlur.Tests
             var wide = new WideKernel();
             for (int i = 0; i < 64; i++)
             {
-                transition.Prepare(16.25f + i % 60 / 8f);
+                transition.Prepare(11.5f + i % 60 / 8f);
                 wide.Prepare(24 + i % 60 * 2);
             }
             long before = GC.GetAllocatedBytesForCurrentThread();
             for (int i = 0; i < 64; i++)
             {
-                transition.Prepare(16.25f + i % 60 / 8f);
+                transition.Prepare(11.5f + i % 60 / 8f);
                 wide.Prepare(24 + i % 60 * 2);
             }
             long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
