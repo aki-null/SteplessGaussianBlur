@@ -29,10 +29,12 @@ namespace SteplessGaussianBlur
             internal readonly bool retainHardwareScaling;
             // Source pixels per output texel: 1, or ReducedScale.
             internal readonly int outputScale;
+            // A reduced output, which the viewer's sampling finishes even at scale 1.
+            internal readonly bool reduced;
 
             internal RecordContext(TextureHandle source, Texture sourceTexture, TextureDesc descriptor,
                 Vector2Int allocation, Vector2Int viewport, Vector2Int textureView, TextureHandle destination,
-                TextureDesc destinationDescriptor, GraphicsFormat format, int outputScale)
+                TextureDesc destinationDescriptor, GraphicsFormat format, OutputSize output)
             {
                 this.source = source;
                 this.sourceTexture = sourceTexture;
@@ -51,7 +53,8 @@ namespace SteplessGaussianBlur
                 input.useDynamicScale = false;
                 input.useDynamicScaleExplicit = false;
                 input.format = format;
-                this.outputScale = outputScale;
+                outputScale = output.Scale;
+                reduced = output.Reduced;
             }
 
             internal TextureDesc Describe(RenderGraph graph, TextureHandle texture)

@@ -34,7 +34,7 @@ Every number has one source:
 | `csharp.py` | Reads named constants from `Runtime/Kernels/*.cs` |
 
 `pipeline.py` matches the package's C# model of the same passes
-(`Tests/Editor/ExecutedPipeline.cs`) within 3e-9 per pixel for the pyramid
+(`Tests/Editor/ExecutedPipeline.cs`) within 1e-8 per pixel for the pyramid
 and to double precision for the transition and wide layouts. The PlayMode
 tests check that model's point moments on the GPU.
 

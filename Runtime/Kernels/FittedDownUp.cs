@@ -105,7 +105,7 @@ namespace SteplessGaussianBlur
             // HalfResGaussianStart, eased to HalfResGaussianHoldShare (the fit's
             // optimum) by HalfResGaussianHold, then eased to all of it from
             // HalfResGaussianRise to End, where this becomes a level.
-            double coarseVariance = Math.Max(SmallKernel.CoarseVariance(p), 0);
+            double coarseVariance = Math.Max(SmallKernel.PyramidDown.Binomial.CoarseVariance(p), 0);
             double fadeIn = Smooth((p - HalfResGaussianStart) / (HalfResGaussianHold - HalfResGaussianStart));
             double share = HalfResGaussianHoldShare + (1 - HalfResGaussianHoldShare) *
                 Smooth((p - HalfResGaussianRise) / (End - HalfResGaussianRise));
@@ -141,7 +141,7 @@ namespace SteplessGaussianBlur
         static double Down(int i, double slide, double toBinomial)
         {
             double fitted = DownBase[i] + DownSlide[i] * slide;
-            double binomial = SmallKernel.Binomial[2 - i];
+            double binomial = SmallKernel.PyramidDown.Binomial.Weight(2 - i);
             // Max only guards negative round-off near a zero weight.
             return Math.Max(0, fitted * (1 - toBinomial) + binomial * toBinomial);
         }

@@ -36,7 +36,9 @@ namespace SteplessGaussianBlur.Tests
                 15.463531483015744,    // A pyramid level starts crossfading into one more level.
                 17.743531483015744,    // That crossfade ends; the extra level becomes real passes.
                 18.012380026063752,    // The outermost cubic Up starts fading to bilinear (sigma 4.25).
-                20.193430251737784     // The outermost Up is bilinear: one fetch instead of four (sigma 4.5).
+                20.193430251737784,    // The outermost Up is bilinear: one fetch instead of four (sigma 4.5).
+                34.711810448091605,    // The binomial down starts turning into [1, 3, 3, 1] (sigma 5.9).
+                39.577475316768336     // The down halves: four fetches instead of nine (sigma 6.3).
             };
             // A literal that drifts from its runtime switch would probe a
             // stretch with no switch at all.
@@ -47,6 +49,8 @@ namespace SteplessGaussianBlur.Tests
             Assert.That(boundaries[8], Is.EqualTo(OuterLevelSwitch(SmallKernel.NextLevelFadeEnd)).Within(1e-5));
             Assert.That(boundaries[9], Is.EqualTo(BlurMath.RequestedVariance(SmallKernel.OuterBilinearStartSigma)).Within(1e-12));
             Assert.That(boundaries[10], Is.EqualTo(BlurMath.RequestedVariance(SmallKernel.OuterBilinearEndSigma)).Within(1e-12));
+            Assert.That(boundaries[11], Is.EqualTo(BlurMath.RequestedVariance(SmallKernel.HalveStartSigma)).Within(1e-12));
+            Assert.That(boundaries[12], Is.EqualTo(BlurMath.RequestedVariance(SmallKernel.HalvedSigma)).Within(1e-12));
             foreach (double variance in boundaries)
             {
                 float sigma = SigmaForVariance(variance);
@@ -77,6 +81,65 @@ namespace SteplessGaussianBlur.Tests
             }
         }
 
+        // High's switches: the start of its fade, its handover to the pyramid,
+        // and every change of fetch count, where it changes shader pass.
+        // Below variance 1 High records what Fast does, which
+        // LayoutBoundariesRemainContinuous covers.
+        [UnityTest]
+        public IEnumerator HighQualityBoundariesRemainContinuous()
+        {
+            var boundaries = new List<double> { SmallKernel.HighQualityFadeStart, FittedDownUp.End };
+            var workspace = new SmallKernel.Workspace();
+            const int steps = 4000;
+            int Count(double v) => SmallKernel.GaussianRows(workspace, v, SmallKernel.Crossfade.IntoFirstLevel);
+            for (int i = 1; i < steps; i++)
+            {
+                double low = 1 + (FittedDownUp.End - 1) * (i - 1) / steps;
+                double high = 1 + (FittedDownUp.End - 1) * i / steps;
+                int lowCount = Count(low);
+                if (Count(high) == lowCount)
+                    continue;
+                for (int j = 0; j < 60; j++)
+                {
+                    double middle = (low + high) * 0.5;
+                    if (Count(middle) == lowCount)
+                        low = middle;
+                    else
+                        high = middle;
+                }
+                boundaries.Add(high);
+            }
+            Assert.That(boundaries.Count, Is.GreaterThan(4), "fetch-count switches found");
+            foreach (double variance in boundaries)
+            {
+                float sigma = SigmaForVariance(variance);
+                const float step = 0.00001f;
+                Color[] below = null;
+                Color[] above = null;
+                yield return RunCase(new BlurCase(33, 25, sigma - step)
+                {
+                    Quality = BlurQuality.High,
+                    ReceiveResult = pixels => below = pixels
+                });
+                yield return RunCase(new BlurCase(33, 25, sigma + step)
+                {
+                    Quality = BlurQuality.High,
+                    ReceiveResult = pixels => above = pixels
+                });
+                AssertPixels(above, below, 3 * HalfSpacingBelowOne, HalfSpacingBelowOne,
+                    $"High boundary variance {variance}");
+            }
+        }
+
+        // Odd sizes exercise borders and parity; 5×3 is narrower than the
+        // 4-sigma reach, so every fetch clamps at an edge.
+        [UnityTest]
+        public IEnumerator HighQualityMatchesReference(
+            [Values(1.62f, 1.8f, 2.3f, 2.399f)] float sigma, [Values(33, 5)] int width)
+        {
+            yield return RunCase(new BlurCase(width, width == 33 ? 25 : 3, sigma) { Quality = BlurQuality.High });
+        }
+
         static float SigmaForVariance(double variance)
         {
             double low = 0;
@@ -100,7 +163,7 @@ namespace SteplessGaussianBlur.Tests
             var workspace = new SmallKernel.Workspace();
             double target = SmallKernel.LevelVariance + 4 * coarse;
             double low = FittedDownUp.End;
-            double high = BlurMath.RequestedVariance(TransitionKernel.StartSigma);
+            double high = BlurMath.RequestedVariance(TransitionKernel.EndSigma);
             for (int i = 0; i < 100; i++)
             {
                 double middle = (low + high) * 0.5;
@@ -125,7 +188,7 @@ namespace SteplessGaussianBlur.Tests
                 point[channel] = amplitude;
                 input[(height / 2 + channel) * width + width / 2 + channel] = point;
             }
-            foreach (float boundary in new[] { 16.1f, 24f })
+            foreach (float boundary in new[] { 11.5f, 24f })
             {
                 Color[] below = null, above = null;
                 yield return RunCase(new BlurCase(width, height, boundary - 0.0001f)
@@ -149,10 +212,11 @@ namespace SteplessGaussianBlur.Tests
                     // relative to the HDR input's peak would hide shape changes.
                     double change = difference / amplitude;
                     TestContext.WriteLine($"Endpoint sigma {boundary}, phase {channel}, L1 change {change:R}");
-                    // Measured worst phases on M4: 0.40% at sigma 16.1 and 0.17%
-                    // at sigma 24 (Tools~/FilterFit/fit_transition.py fractions).
-                    // Keep separate regression budgets.
-                    double budget = boundary < 20 ? 0.0045 : 0.0020;
+                    // Measured worst phases on M4: 0.92% at sigma 11.5, where
+                    // the transition replaces the halving pyramid, and 0.17%
+                    // at sigma 24 (Tools~/FilterFit/fit_transition.py
+                    // fractions). Keep separate regression budgets.
+                    double budget = boundary < 20 ? 0.0100 : 0.0020;
                     Assert.That(change, Is.LessThan(budget),
                         $"Endpoint response change, sigma {boundary}, phase {channel}");
                 }
@@ -215,7 +279,7 @@ namespace SteplessGaussianBlur.Tests
                             string label = $"sigma {sigma}, axis {axis}, phase {4 * batch + channel}";
                             Assert.That(mass / amplitude, Is.EqualTo(1).Within(1e-4), "Point energy, " + label);
                             // The quarter-resolution pass centers each source phase
-                            // within 1/128 pixel; below sigma 16.1 rounding to the
+                            // within 1/128 pixel; below the transition rounding to the
                             // sampler grid leaves a little more.
                             Assert.That(Math.Abs(firstMoment / mass),
                                 Is.LessThan(sigma >= TransitionKernel.StartSigma ? 0.0081 : 0.011),

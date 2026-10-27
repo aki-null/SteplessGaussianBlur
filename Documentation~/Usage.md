@@ -26,8 +26,10 @@ four corner colors.
 
 ## Reduced output
 
-From sigma 4.5, `RecordReduced` and a default `BlurTarget` return a
-texture up to 128 times smaller per side. The factor is a power of two
+From sigma 3, `RecordReduced` and a default `BlurTarget` return a
+texture up to 128 times smaller per side. Over 2.75–3 their last upsample
+turns bilinear. Their error is 1.1% at sigma 3, against 0.3% for
+`Record`, and at most 1.3% near 4.1, against 1.0%. The factor is a power of two
 that divides both sides, so a 1170-pixel side allows only 2. A
 `BlurTarget`'s size changes with sigma. Bilinear sampling with UVs 0–1
 finishes the blur. In the outermost half texel the sampler's clamp
@@ -57,10 +59,19 @@ arrays are rejected. Once XR is initialized, `TextureXR.slices` stays 2,
 so check the camera before passing an array. A `BlurTarget` holds a 2D
 texture.
 
+## Quality
+
+`BlurQuality.High` (`blur.Quality`, or the renderer feature's
+**Quality**) runs a full-resolution Gaussian below sigma 2.24 and joins
+`Fast` by 2.4. Its error stays under 0.5% up to sigma 2.3. Over 1.4–2.3
+`Fast`'s error peaks at 6%. There High costs up to 1.6 times as much on
+M4. Switching while a blur animates through sigma 1.46–2.4 makes a
+visible step.
+
 ## Warmup
 
-`WarmUpShaders(colorFormat)` prepares a source format's variants,
-including a `BlurTarget`'s pick for it; `includeXR: true` adds stereo.
-Pipeline creation can finish asynchronously, so the first draw can still
-stall. Player builds strip keyword combinations the recorder never
-selects.
+`WarmUpShaders(colorFormat)` prepares a source format's variants for
+both qualities, including a `BlurTarget`'s pick for it; `includeXR: true`
+adds stereo. Pipeline creation can finish asynchronously, so the first
+draw can still stall. Player builds strip keyword combinations the
+recorder never selects.

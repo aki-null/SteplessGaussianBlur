@@ -1,5 +1,5 @@
-// Sigma below 16.1: full-resolution Gaussian rows, the fitted down/up pair
-// and the binomial/cubic pyramid. C# side: Layouts/SmallLayout.cs and
+// Sigma below 11.5: full-resolution Gaussian rows, the fitted down/up pair
+// and the pyramid (binomial or [1, 3, 3, 1] down, cubic up). C# side: Layouts/SmallLayout.cs and
 // Kernels/SmallKernel.cs.
 
 // Small-layout taps, in source texels.
@@ -148,6 +148,30 @@ float4 FragVertical8(Varyings input) : SV_Target
     return PassOutput(SeparableUnrolled(SmallPosition(input), true, 8));
 }
 
+float4 FragHorizontal10(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    return PassOutput(SeparableUnrolled(SmallPosition(input), false, 10));
+}
+
+float4 FragVertical10(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    return PassOutput(SeparableUnrolled(SmallPosition(input), true, 10));
+}
+
+float4 FragHorizontal12(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    return PassOutput(SeparableUnrolled(SmallPosition(input), false, 12));
+}
+
+float4 FragVertical12(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    return PassOutput(SeparableUnrolled(SmallPosition(input), true, 12));
+}
+
 // Target pixel center j + 0.5 maps to source coordinate 2j + 1,
 // between full-resolution source pixels 2j and 2j + 1.
 float4 FragDown(Varyings input) : SV_Target
@@ -160,6 +184,15 @@ float4 FragDown(Varyings input) : SV_Target
         sum += SampleSource(center + float2(_Taps[x].x, _Taps[y].x))
             * (_Taps[x].y * _Taps[y].y);
     return PassOutput(sum);
+}
+
+// FragDown with the outer fetches on single texels: [1, 3, 3, 1] / 8 as two
+// bilinear fetches per axis.
+float4 FragDownHalve(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    float2 center = (input.positionCS.xy - _SmallTargetHalo) * 2;
+    return PassOutput(HALVE_2X2(SampleSource, center));
 }
 
 // Each fine pixel maps to a different phase of the half-size grid.
@@ -182,7 +215,7 @@ float4 FragUp(Varyings input) : SV_Target
     return PassOutput(sum);
 }
 
-// From sigma 4.5 the coarse image already carries nearly all blur.
+// From sigma 4.5 (3 for a reduced output) the coarse image carries nearly all blur.
 // One bilinear reconstruction replaces the outer four-fetch cubic row.
 // Alternating offsets preserve the same half-grid alignment as FragUp.
 float4 FragLinearUp(Varyings input) : SV_Target

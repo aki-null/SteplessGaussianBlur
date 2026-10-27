@@ -5,14 +5,14 @@ using static SteplessGaussianBlur.BlurMath;
 namespace SteplessGaussianBlur
 {
     /// <summary>
-    /// Filters of the small layouts, sigma below 16.1 (Layouts/SmallLayout.cs).
+    /// Filters of the small layouts, sigma below 11.5 (Layouts/SmallLayout.cs).
     /// Each filter is a 1D row; the shaders run it on X and then on Y.
     /// </summary>
     /// <remarks>
     /// <code>
-    /// sigma 0 ......... 1.62 ................... 2.40 ......................... 16.1
+    /// sigma 0 ......... 1.62 ................... 2.40 ......................... 11.5
     ///       Gaussian      Down -> [Gaussian] -> Up    Down -> ... Gaussian ... -> Up
-    ///       (full res)    FittedDownUp (half res)     pyramid: binomial down, cubic up
+    ///       (full res)    FittedDownUp (half res)     pyramid: 2x down, cubic up
     /// </code>
     /// <para>
     /// Crossfade before switching. Shortly before each switch, the Gaussian
@@ -41,8 +41,16 @@ namespace SteplessGaussianBlur
             /// <summary>Full resolution, sigma 1.46 to 1.62: FittedDownUp's Down then Up.</summary>
             IntoDownUp,
             /// <summary>A pyramid level's Gaussian: one more pyramid level.</summary>
-            IntoNextLevel
+            IntoNextLevel,
+            /// <summary>Full resolution in high quality, sigma 2.24 to 2.40: the first pyramid level.</summary>
+            IntoFirstLevel
         }
+
+        // In high quality the full-res row keeps its whole taper and skips
+        // the fitted Down/Up; it crossfades into the first pyramid level,
+        // which then replaces it at FittedDownUp.End.
+        internal const double HighQualityFadeStartSigma = 2.24;
+        internal static readonly double HighQualityFadeStart = RequestedVariance(HighQualityFadeStartSigma);
 
         // Down/Up passes take over where the fitted Up gains its fourth tap.
         // Below that, the row crossfading into them fits five fetches.
@@ -59,7 +67,8 @@ namespace SteplessGaussianBlur
         internal static readonly double ParityPairingStart = RequestedVariance(ParityPairingSigma);
 
         // ---- Pyramid levels ----------------------------------------------------
-        // A level is a binomial 2x down, then a Gaussian or more levels at
+        // A level is a 2x down (binomial, or [1, 3, 3, 1] / 8 from 6.3; see
+        // the halving pyramid below), then a Gaussian or one more level at
         // half resolution, then a cubic B-spline 2x up. A level crossfades
         // into one more level while its coarse Gaussian would grow from
         // sigma 0.4 to 0.55.
@@ -73,20 +82,11 @@ namespace SteplessGaussianBlur
         // sampler holds it at 213/256, leaving 43/256 of it on the far texel.
         // Its weight, near 3/16, keeps the inner minus the far texel at 1/8,
         // so a point stays centered on either source parity.
-        internal const double DownOuterFarFraction = 43.0 / 256;
+        // PyramidDown.Binomial runs it; these constants name it where a
+        // budget must be a compile-time constant.
+        internal const int BinomialDownFar = 43;
+        internal const double DownOuterFarFraction = BinomialDownFar / 256.0;
         internal const double DownOuterMass = 0.125 / (1 - 2 * DownOuterFarFraction);
-        internal static readonly Vector4[] BinomialDown =
-        {
-            new Vector4(-2.5f + 213f / 256f, (float)DownOuterMass, 0, 0),
-            new Vector4(0, (float)(1 - 2 * DownOuterMass), 0, 0),
-            new Vector4(2.5f - 213f / 256f, (float)DownOuterMass, 0, 0)
-        };
-        // The same down's six weights at source pixels 2j-2 .. 2j+3.
-        internal static readonly double[] Binomial =
-        {
-            DownOuterMass * DownOuterFarFraction, DownOuterMass * (1 - DownOuterFarFraction), 0.5 - DownOuterMass,
-            0.5 - DownOuterMass, DownOuterMass * (1 - DownOuterFarFraction), DownOuterMass * DownOuterFarFraction
-        };
         // Its variance in source pixels², close to the binomial's 5/4.
         internal const double DownVariance = 2 * DownOuterMass *
             (6.25 * DownOuterFarFraction + 2.25 * (1 - DownOuterFarFraction)) + (1 - 2 * DownOuterMass) * 0.25;
@@ -116,11 +116,111 @@ namespace SteplessGaussianBlur
         internal const double NextLevelFadeStart = LevelVariance + 4.0 * 0.4 * 0.4;
         internal const double NextLevelFadeEnd = LevelVariance + 4.0 * 0.55 * 0.55;
 
+        // ---- Halving pyramid ---------------------------------------------------
+        // From sigma 6.3 both levels' downs are [1, 3, 3, 1] / 8: four
+        // fetches instead of nine. The pyramid then adds no third level: its
+        // quarter-res Gaussian grows to 12 fetches by 11.5, where the
+        // transition takes over. Error stays under 1%.
+        //
+        // Over 5.9-6.3 the binomial turns into it. Both are the same three
+        // fetches with the outer fetch's far fraction going from 43/256 to 0,
+        // its weight keeping the inner minus the far texel at 1/8. The level
+        // variance follows the down.
+        internal const double HalveStartSigma = 5.9;
+        internal const double HalvedSigma = 6.3;
+        /// <summary>Levels of 2x down the pyramid runs at most; the transition takes over beyond.</summary>
+        internal const int MaxPyramidLevels = 2;
+
         /// <summary>
-        /// The variance a level leaves for its half-resolution part, in half-res
-        /// pixels²: a half-res pixel is twice as wide, so a quarter as much.
+        /// A 2x down of three fetches whose outer fetch leaves <c>far</c>/256
+        /// of its weight on the far texel: the binomial at 43, [1, 3, 3, 1] / 8
+        /// at 0. The pyramid's downs and the transition's halve are both one.
         /// </summary>
-        internal static double CoarseVariance(double variance) => (variance - LevelVariance) / 4;
+        internal readonly struct PyramidDown
+        {
+            /// <summary>The outer fetch's share on its far texel, in 256ths of a texel.</summary>
+            internal readonly int far;
+            internal readonly double outerMass;
+            /// <summary>Variance the down adds, in source pixels² (fine texels² of the grid it reads).</summary>
+            internal readonly double downVariance;
+            /// <summary>Variance the down and a cubic up add, in source pixels².</summary>
+            internal readonly double levelVariance;
+            internal readonly double fadeStart;
+            internal readonly double fadeEnd;
+            // Weights on the outer fetch's far texel, its near texel, and each center texel.
+            readonly double farWeight, nearWeight, innerWeight;
+
+            /// <summary>Four fetches: <c>far</c> is 0, so the outer fetch reads one texel.</summary>
+            internal bool Halves => far == 0;
+
+            PyramidDown(int far)
+            {
+                this.far = far;
+                double fraction = far / 256.0;
+                // Keeps the inner minus the far texel at 1/8, so a point stays centered.
+                outerMass = 0.125 / (1 - 2 * fraction);
+                farWeight = outerMass * fraction;
+                nearWeight = outerMass * (1 - fraction);
+                innerWeight = 0.5 - outerMass;
+                downVariance = 2 * outerMass * (6.25 * fraction + 2.25 * (1 - fraction)) +
+                    (1 - 2 * outerMass) * 0.25;
+                levelVariance = downVariance + 4 * CubicUpVariance;
+                fadeStart = levelVariance + 4.0 * 0.4 * 0.4;
+                fadeEnd = levelVariance + 4.0 * 0.55 * 0.55;
+            }
+
+            /// <summary>The binomial down, below sigma 5.9.</summary>
+            internal static readonly PyramidDown Binomial = new PyramidDown(BinomialDownFar);
+            /// <summary>[1, 3, 3, 1] / 8, from sigma 6.3.</summary>
+            internal static readonly PyramidDown Halved = new PyramidDown(0);
+
+            /// <summary>The down with <paramref name="far"/>/256 on the far texel, 0 to 43.</summary>
+            internal static PyramidDown WithFar(int far) => new PyramidDown(far);
+
+            internal static PyramidDown At(double sigma)
+            {
+                double halved = Smooth((sigma * sigma - HalveStartSigma * HalveStartSigma) /
+                    (HalvedSigma * HalvedSigma - HalveStartSigma * HalveStartSigma));
+                if (halved == 0)
+                    return Binomial;
+                if (halved == 1)
+                    return Halved;
+                // Inside the window the down neither stays binomial nor
+                // halves, so its pass switches exactly at 5.9 and 6.3.
+                int far = (int)Math.Round(BinomialDownFar * (1 - halved));
+                return new PyramidDown(Math.Min(Math.Max(far, 1), BinomialDownFar - 1));
+            }
+
+            /// <summary>Weight on source pixel 2j - 2 + h, h from 0 to 5.</summary>
+            internal double Weight(int h)
+            {
+                switch (h)
+                {
+                    case 0: case 5: return farWeight;
+                    case 1: case 4: return nearWeight;
+                    default: return innerWeight;
+                }
+            }
+
+            /// <summary>
+            /// The variance a level leaves for its half-resolution part, in half-res
+            /// pixels²: a half-res pixel is twice as wide, so a quarter as much.
+            /// </summary>
+            internal double CoarseVariance(double variance) => (variance - levelVariance) / 4;
+
+            /// <summary>
+            /// Writes the three fetches into taps[0..2], centered at
+            /// <paramref name="center"/>: 0 for FragDown, 0.5 where texel 0 is
+            /// the left center texel.
+            /// </summary>
+            internal void Pack(Vector4[] taps, float center = 0)
+            {
+                float outer = 2.5f - (256 - far) / 256f;
+                taps[0] = new Vector4(center - outer, (float)outerMass, 0, 0);
+                taps[1] = new Vector4(center, (float)(1 - 2 * outerMass), 0, 0);
+                taps[2] = new Vector4(center + outer, (float)outerMass, 0, 0);
+            }
+        }
 
         // Rows map source-pixel offset k to row[RowOrigin + k].
         const int RowOrigin = 32;
@@ -138,6 +238,8 @@ namespace SteplessGaussianBlur
             internal readonly Vector4[] coarseTaps = new Vector4[MaxFetches * 2];
             // The outermost Up, which inner levels' taps must not overwrite.
             internal readonly Vector4[] outerTaps = new Vector4[4];
+            // A pyramid Down: exactly its three fetches, so no other row's taps upload with it.
+            internal readonly Vector4[] downTaps = new Vector4[3];
             internal readonly double[] positions = new double[MaxFetches];
             internal readonly double[] weights = new double[MaxFetches];
         }
@@ -150,9 +252,14 @@ namespace SteplessGaussianBlur
         /// Returns fetches per axis (the larger of the two).
         /// </summary>
         internal static int GaussianRows(Workspace workspace, double variance, Crossfade crossfade = Crossfade.None)
-            => GaussianRows(workspace, variance, crossfade, workspace.taps);
+            => GaussianRows(workspace, variance, crossfade, PyramidDown.Binomial, workspace.taps);
 
-        static int GaussianRows(Workspace workspace, double variance, Crossfade crossfade, Vector4[] taps)
+        /// <param name="down">The pyramid's down, for <see cref="Crossfade.IntoNextLevel"/>.</param>
+        internal static int GaussianRows(Workspace workspace, double variance, Crossfade crossfade,
+            in PyramidDown down) => GaussianRows(workspace, variance, crossfade, down, workspace.taps);
+
+        static int GaussianRows(Workspace workspace, double variance, Crossfade crossfade, in PyramidDown down,
+            Vector4[] taps)
         {
             double fade = 0;
             FittedDownUp downUp = default;
@@ -163,14 +270,16 @@ namespace SteplessGaussianBlur
                 if (fade > 0)
                     downUp = FittedDownUp.At(variance);
             }
-            else if (crossfade == Crossfade.IntoNextLevel)
+            else if (crossfade != Crossfade.None)
             {
-                fade = Smooth((variance - NextLevelFadeStart) / (NextLevelFadeEnd - NextLevelFadeStart));
+                fade = crossfade == Crossfade.IntoNextLevel
+                    ? Smooth((variance - down.fadeStart) / (down.fadeEnd - down.fadeStart))
+                    : Smooth((variance - HighQualityFadeStart) / (FittedDownUp.End - HighQualityFadeStart));
                 // The next level's own Gaussian, as its passes will run it.
-                // Its variance is below NextLevelFadeStart, so it is plain.
+                // Its variance is below the fade start, so it is plain.
                 // Built first: it reuses workspace.gaussian.
                 if (fade > 0)
-                    coarseCount = GaussianRows(workspace, CoarseVariance(variance), Crossfade.None,
+                    coarseCount = GaussianRows(workspace, down.CoarseVariance(variance), Crossfade.None, down,
                         workspace.coarseTaps);
             }
 
@@ -190,7 +299,7 @@ namespace SteplessGaussianBlur
                     if (crossfade == Crossfade.IntoDownUp)
                         AddDownUp(row, downUp, parity, fade);
                     else
-                        AddNextLevel(row, workspace.coarseTaps, coarseCount, parity, fade);
+                        AddNextLevel(row, down, workspace.coarseTaps, coarseCount, parity, fade);
                 }
                 int pairing = variance >= ParityPairingStart ? parity : -1;
                 count = Math.Max(count, BilinearPairs.Pack(row, RowOrigin, taps, parity * MaxFetches, MaxFetches,
@@ -241,9 +350,10 @@ namespace SteplessGaussianBlur
             }
         }
 
-        /// <summary>Adds one pyramid level: binomial down, the coarse Gaussian, cubic up.</summary>
+        /// <summary>Adds one pyramid level: the down, the coarse Gaussian, cubic up.</summary>
         /// <param name="coarseTaps">The coarse Gaussian's fetches, both parities.</param>
-        static void AddNextLevel(double[] row, Vector4[] coarseTaps, int coarseCount, int x, double weight)
+        static void AddNextLevel(double[] row, in PyramidDown down, Vector4[] coarseTaps, int coarseCount, int x,
+            double weight)
         {
             // Up: output pixel x reads around half-res texel 0 (x is 0 or 1).
             for (int u = 0; u < 2; u++)
@@ -276,7 +386,7 @@ namespace SteplessGaussianBlur
                             for (int h = 0; h < 6; h++)
                             {
                                 int source = 2 * blurred + h - 2;
-                                Add(row, source - x, weight * upWeight * gaussianWeight * Binomial[h]);
+                                Add(row, source - x, weight * upWeight * gaussianWeight * down.Weight(h));
                             }
                         }
                     }
@@ -287,18 +397,32 @@ namespace SteplessGaussianBlur
         // ---- Outermost upsample ------------------------------------------------------
         // From sigma 4.25 to 4.5 the outermost cubic up crossfades into
         // bilinear: one fetch instead of four at full resolution. The image is
-        // smooth enough by then. The blend starts after the first added
-        // level has crossfaded in (4.22), so it leaves that crossfade, the
-        // small layout's largest error from sigma 2.4, unchanged. Inner
-        // levels stay cubic.
+        // smooth enough by then. In a full-size output the blend starts after
+        // the first added level has crossfaded in (4.22), so it leaves that
+        // crossfade, the small layout's largest error from sigma 2.4,
+        // unchanged. Inner levels stay cubic.
+        //
+        // A reduced output blends over 2.75-3 instead, so from 3 its texture
+        // halves and the viewer's bilinear sampling replaces the Up. Its
+        // second level then crossfades over 3.86-4.15, with the bilinear Up.
+        // On M4 its error is 1.1% at 3 and peaks at 1.3% in that crossfade,
+        // against 0.3% and 1.0% at full size.
 
         internal const double OuterBilinearStartSigma = 4.25;
         internal const double OuterBilinearEndSigma = 4.5;
+        internal const double ReducedBilinearStartSigma = 2.75;
+        internal const double ReducedBilinearEndSigma = 3;
 
-        /// <summary>How far the outermost upsample has turned bilinear: 0 below sigma 4.25, 1 from 4.5.</summary>
-        internal static double OuterUpsampleBilinear(double sigma) =>
-            Smooth((sigma * sigma - OuterBilinearStartSigma * OuterBilinearStartSigma) /
-                (OuterBilinearEndSigma * OuterBilinearEndSigma - OuterBilinearStartSigma * OuterBilinearStartSigma));
+        /// <summary>
+        /// How far the outermost upsample has turned bilinear: 0 below sigma
+        /// 4.25, 1 from 4.5; for a reduced output, 0 below 2.75, 1 from 3.
+        /// </summary>
+        internal static double OuterUpsampleBilinear(double sigma, bool reduced = false)
+        {
+            double start = reduced ? ReducedBilinearStartSigma : OuterBilinearStartSigma;
+            double end = reduced ? ReducedBilinearEndSigma : OuterBilinearEndSigma;
+            return Smooth((sigma * sigma - start * start) / (end * end - start * start));
+        }
 
         /// <summary>
         /// The variance to give the outermost level when its Up adds

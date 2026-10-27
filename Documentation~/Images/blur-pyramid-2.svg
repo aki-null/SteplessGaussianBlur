@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="560" height="320" viewBox="0 0 560 320" role="img" aria-labelledby="title desc">
   <title id="title">Two-level blur pyramid</title>
-  <desc id="desc">Binomial downsampling writes half and quarter resolution. A Gaussian in one or two passes filters the coarsest resolution. Cubic upsampling climbs back; the last upsample is cubic → bilinear.</desc>
+  <desc id="desc">2x downsampling writes half and quarter resolution: 6-tap binomial, turning into 4-tap [1, 3, 3, 1] over sigma 5.9–6.3. A Gaussian in one or two passes filters the coarsest resolution. Cubic upsampling climbs back; the last upsample is cubic → bilinear.</desc>
   <defs>
     <marker id="head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#475569"/></marker>
   </defs>
@@ -13,7 +13,7 @@
     .arrow { fill: none; stroke: #475569; stroke-width: 1.6; marker-end: url(#head); }
   </style>
   <rect width="560" height="320" rx="8" fill="#ffffff"/>
-  <text x="280" y="26" class="heading">Sigma 4.22–8.55</text>
+  <text x="280" y="26" class="heading">Sigma 4.22–11.5</text>
   <rect class="box" x="33" y="44" width="144" height="81" rx="5" fill="#eff6ff"/>
   <text x="105" y="80.5" class="label">Source</text>
   <text x="105" y="101.5" class="sub" text-anchor="middle">Full res</text>
@@ -25,7 +25,7 @@
   <rect class="box" x="419" y="169" width="72" height="40.5" rx="2.8" fill="#dbeafe"/>
   <text x="501" y="193.25" class="sub" text-anchor="start">½ res</text>
   <path class="arrow" d="M105 125 V163"/>
-  <text x="122" y="149" text-anchor="start">2x down, 6 taps</text>
+  <text x="122" y="149" text-anchor="start">2x down, 6 → 4 taps</text>
   <path class="arrow" d="M455 169 V131"/>
   <text x="438" y="155" text-anchor="end">Cubic → bilinear up</text>
   <rect class="box" x="87" y="253.5" width="36" height="20.25" rx="2" fill="#bfdbfe"/>
@@ -33,7 +33,7 @@
   <rect class="box" x="437" y="253.5" width="36" height="20.25" rx="2" fill="#bfdbfe"/>
   <text x="483" y="267.625" class="sub" text-anchor="start">¼ res</text>
   <path class="arrow" d="M105 209.5 V247.5"/>
-  <text x="122" y="233.5" text-anchor="start">2x down, 6 taps</text>
+  <text x="122" y="233.5" text-anchor="start">2x down, 6 → 4 taps</text>
   <path class="arrow" d="M455 253.5 V215.5"/>
   <text x="438" y="239.5" text-anchor="end">Cubic up</text>
   <path class="arrow" d="M123 263.625 H431"/>

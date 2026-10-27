@@ -45,14 +45,8 @@ float4 FragWideQuarter(Varyings input) : SV_Target
 float4 FragWideHalve(Varyings input) : SV_Target
 {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-    // Two bilinear pairs implement the positive [1,3,3,1]/8 binomial row.
     float2 center = (input.positionCS.xy - _WideTargetHalo) * 2 + _WideSourceHalo;
-    // Weight first so finite constant HDR values do not overflow the sum.
-    float4 result = SampleClamped(center + float2(-0.75, -0.75)) * 0.25;
-    result += SampleClamped(center + float2(0.75, -0.75)) * 0.25;
-    result += SampleClamped(center + float2(-0.75, 0.75)) * 0.25;
-    result += SampleClamped(center + float2(0.75, 0.75)) * 0.25;
-    return PassOutput(result);
+    return PassOutput(HALVE_2X2(SampleClamped, center));
 }
 
 float4 WideGaussianAxis(Varyings input, bool vertical)

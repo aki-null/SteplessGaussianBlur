@@ -13,16 +13,20 @@ namespace SteplessGaussianBlur
         /// <summary>Source pixels per output texel; 1 when no reduction applies.</summary>
         internal int Scale { get; }
 
-        OutputSize(Vector2Int size, int scale)
+        /// <summary>Whether the viewer's bilinear sampling finishes the blur, at any <see cref="Scale"/>.</summary>
+        internal bool Reduced { get; }
+
+        OutputSize(Vector2Int size, int scale, bool reduced)
         {
             Size = size;
             Scale = scale;
+            Reduced = reduced;
         }
 
-        internal static OutputSize Full(int width, int height) => Create(width, height, 1);
+        internal static OutputSize Full(int width, int height) => new OutputSize(new Vector2Int(width, height), 1, false);
 
-        /// <summary>The output of an active image at <paramref name="scale"/> (see ReducedScale).</summary>
+        /// <summary>The reduced output of an active image at <paramref name="scale"/> (see ReducedScale).</summary>
         internal static OutputSize Create(int width, int height, int scale) =>
-            new OutputSize(new Vector2Int(width / scale, height / scale), scale);
+            new OutputSize(new Vector2Int(width / scale, height / scale), scale, true);
     }
 }

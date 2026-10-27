@@ -130,6 +130,8 @@ namespace SteplessGaussianBlur.Tests
             internal float MeanError = BlurGpuTests.MeanError;
             internal Color[] InputPixels;
             internal GraphicsFormat Format = GraphicsFormat.R32G32B32A32_SFloat;
+            // With WriteToDestination: the destination's format, if not Format.
+            internal GraphicsFormat? DestinationFormat;
             // Recorded after the main blur; its result is unused and culled.
             internal float? AdditionalStrength;
             internal Vector2Int ViewportSize;
@@ -147,6 +149,7 @@ namespace SteplessGaussianBlur.Tests
             // Record into this target (RecordTo), then copy it out; set Reduced.
             internal BlurTarget Target;
             internal bool CompareReference = true;
+            internal BlurQuality Quality;
 
             internal BlurCase(int width, int height, float strength)
             {
@@ -203,12 +206,13 @@ namespace SteplessGaussianBlur.Tests
                 var pixels = new Color[active.x * active.y];
                 for (int y = 0; y < active.y; y++)
                     Array.Copy(sourcePixels, eye * c.Width * c.Height + y * c.Width, pixels, y * active.x, active.x);
-                Array.Copy(BlurGpuReference.Blur(pixels, active.x, active.y, sigma, scale), 0,
+                Array.Copy(BlurGpuReference.Blur(pixels, active.x, active.y, sigma, scale, c.Quality, c.Reduced), 0,
                     expected, eye * outputSize.x * outputSize.y, outputSize.x * outputSize.y);
             }
             RenderTexture source = CreateTarget(c.Width, c.Height, format: c.Format,
                 msaaSamples: c.MsaaSamples, slices: c.Slices);
-            RenderTexture destination = CreateTarget(layout.Size.x, layout.Size.y, format: c.Format, slices: c.Slices);
+            RenderTexture destination = CreateTarget(layout.Size.x, layout.Size.y,
+                format: c.DestinationFormat ?? c.Format, slices: c.Slices);
             bool half = c.Format == GraphicsFormat.R16G16B16A16_SFloat;
             // Float uploads copy; other formats convert in a Blit.
             bool copy = c.MsaaSamples == 1 && (half || c.Format == GraphicsFormat.R32G32B32A32_SFloat);
@@ -278,6 +282,7 @@ namespace SteplessGaussianBlur.Tests
                         }
                     }
                     TextureHandle importedOutput = graph.ImportTexture(output);
+                    blur.Quality = c.Quality;
                     BlurStrength blurStrength = c.ReferenceResolution == 0 ? c.Strength :
                         BlurStrength.AtReferenceResolution(c.Strength, c.ReferenceResolution);
                     BlurSource blurSource = c.ViewportSize == default ? importedSource :
@@ -363,7 +368,7 @@ namespace SteplessGaussianBlur.Tests
             // Some formats, such as 8-bit on Metal, lack readback support; read a float copy.
             bool convert = !SystemInfo.IsFormatSupported(c.Format, GraphicsFormatUsage.ReadPixels);
             RenderTexture resultReadback = destination;
-            if (convert)
+            if (convert || !SystemInfo.IsFormatSupported(destination.graphicsFormat, GraphicsFormatUsage.ReadPixels))
             {
                 resultReadback = CreateTarget(destination.width, destination.height);
                 Graphics.Blit(destination, resultReadback);

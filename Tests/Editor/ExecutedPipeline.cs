@@ -22,11 +22,13 @@ namespace SteplessGaussianBlur.Tests
     {
         /// <summary>Response to a unit point at <paramref name="point"/> of a row of <paramref name="length"/> texels.</summary>
         /// <param name="outputScale">1, or a reduced output's scale, which <see cref="View"/> then magnifies.</param>
-        internal static double[] Respond(float sigma, int length, int point, int outputScale = 1)
+        /// <param name="reduced">A reduced output, which <paramref name="outputScale"/> above 1 implies.</param>
+        internal static double[] Respond(float sigma, int length, int point, int outputScale = 1,
+            BlurQuality quality = BlurQuality.Fast, bool reduced = false)
         {
             var source = new double[length];
             source[point] = 1;
-            return Run(sigma, source, outputScale);
+            return Run(sigma, source, outputScale, quality, reduced);
         }
 
         /// <summary>Runs the layout of <paramref name="sigma"/> on one row, at full resolution.</summary>
@@ -34,13 +36,14 @@ namespace SteplessGaussianBlur.Tests
         /// 1, or a reduced output's scale: the layout stops at that grid and
         /// <see cref="View"/> samples it back to full resolution.
         /// </param>
-        internal static double[] Run(float sigma, double[] source, int outputScale = 1)
+        internal static double[] Run(float sigma, double[] source, int outputScale = 1,
+            BlurQuality quality = BlurQuality.Fast, bool reduced = false)
         {
-            double[] output = RunOutput(sigma, source, outputScale);
+            double[] output = RunOutput(sigma, source, outputScale, quality, reduced || outputScale > 1);
             return outputScale == 1 ? output : View(output, outputScale, source.Length);
         }
 
-        static double[] RunOutput(float sigma, double[] source, int outputScale)
+        static double[] RunOutput(float sigma, double[] source, int outputScale, BlurQuality quality, bool reduced)
         {
             if (sigma >= TransitionKernel.EndSigma)
                 return Wide(sigma, source, outputScale);
@@ -49,7 +52,7 @@ namespace SteplessGaussianBlur.Tests
             double variance = BlurMath.RequestedVariance(sigma);
             if (variance < 1e-12)
                 return (double[])source.Clone();
-            return Small(sigma, variance, source, outputScale);
+            return Small(sigma, variance, source, outputScale, quality, reduced);
         }
 
         /// <summary>
@@ -100,8 +103,11 @@ namespace SteplessGaussianBlur.Tests
 
         static readonly SmallKernel.Workspace workspace = new SmallKernel.Workspace();
 
-        static double[] Small(float sigma, double variance, double[] source, int outputScale)
+        static double[] Small(float sigma, double variance, double[] source, int outputScale, BlurQuality quality,
+            bool reduced)
         {
+            if (quality == BlurQuality.High && variance < FittedDownUp.End)
+                return Rows(source, variance, Crossfade.IntoFirstLevel);
             if (variance < SmallKernel.DownUpPassesStart)
                 return Rows(source, variance, Crossfade.IntoDownUp);
             if (variance < FittedDownUp.End)
@@ -115,19 +121,31 @@ namespace SteplessGaussianBlur.Tests
                 downUp.PackUp(taps);
                 return Up(half, taps, source.Length);
             }
-            double bilinear = SmallKernel.OuterUpsampleBilinear(sigma);
+            double bilinear = SmallKernel.OuterUpsampleBilinear(sigma, reduced);
             double upVariance = SmallKernel.OuterUpsample(workspace, bilinear);
-            return PyramidLevel(source, SmallKernel.OuterLevelVariance(variance, upVariance), bilinear, outputScale);
+            return PyramidLevel(source, SmallKernel.OuterLevelVariance(variance, upVariance),
+                SmallKernel.PyramidDown.At(sigma), 0, bilinear, outputScale);
         }
 
-        static double[] PyramidLevel(double[] source, double variance, double outerBilinear, int outputScale = 1)
+        static double[] PyramidLevel(double[] source, double variance, in SmallKernel.PyramidDown down,
+            int levels, double outerBilinear, int outputScale = 1)
         {
-            if (variance < SmallKernel.NextLevelFadeStart)
+            if (variance < down.fadeStart || levels >= SmallKernel.MaxPyramidLevels)
                 return Rows(source, variance, Crossfade.None);
-            if (variance < SmallKernel.NextLevelFadeEnd)
-                return Rows(source, variance, Crossfade.IntoNextLevel);
-            double[] half = Down(source, SmallKernel.BinomialDown);
-            half = PyramidLevel(half, SmallKernel.CoarseVariance(variance), 0);
+            if (variance < down.fadeEnd)
+                return Rows(source, variance, Crossfade.IntoNextLevel, down);
+            double[] half;
+            if (down.Halves)
+            {
+                half = DownHalve(source);
+            }
+            else
+            {
+                var taps = new Vector4[3];
+                down.Pack(taps);
+                half = Down(source, taps);
+            }
+            half = PyramidLevel(half, down.CoarseVariance(variance), down, levels + 1, 0);
             // A reduced output stops before the bilinear Up.
             if (outputScale == 2)
                 return half;
@@ -145,8 +163,11 @@ namespace SteplessGaussianBlur.Tests
         // as the kernels build them. RecordSmallPass interleaves both phases
         // at upload; GaussianPassesUploadBothPhasesOfEachTap checks that.
         static double[] Rows(double[] source, double variance, Crossfade crossfade)
+            => Rows(source, variance, crossfade, SmallKernel.PyramidDown.Binomial);
+
+        static double[] Rows(double[] source, double variance, Crossfade crossfade, in SmallKernel.PyramidDown down)
         {
-            int count = SmallKernel.GaussianRows(workspace, variance, crossfade);
+            int count = SmallKernel.GaussianRows(workspace, variance, crossfade, down);
             var output = new double[source.Length];
             for (int x = 0; x < output.Length; x++)
             {
@@ -173,6 +194,15 @@ namespace SteplessGaussianBlur.Tests
                     sum += taps[k].y * Sample(source, 2 * j + 0.5 + Uploaded(taps[k].x));
                 output[j] = sum;
             }
+            return output;
+        }
+
+        // FragDownHalve: two fetches of 1/2, 3/4 texel either side of the center.
+        static double[] DownHalve(double[] source)
+        {
+            var output = new double[DivideUp(source.Length, 2)];
+            for (int j = 0; j < output.Length; j++)
+                output[j] = 0.5 * Sample(source, 2 * j + 0.5 - 0.75) + 0.5 * Sample(source, 2 * j + 0.5 + 0.75);
             return output;
         }
 

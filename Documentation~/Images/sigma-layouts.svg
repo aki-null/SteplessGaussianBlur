@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="560" height="176" viewBox="0 0 560 176" role="img" aria-labelledby="title desc">
   <title id="title">Layouts by sigma</title>
-  <desc id="desc">Small layout below sigma 16.1: full-resolution Gaussian below 1.62, fitted down/up pair to 2.40, pyramid to 16.1. Transition layout to 24, wide layout above, with its pitch doubling at 70, 140 and on. Hatched ranges mark where a level fades in: 1.46 to 1.62, the pyramid’s second and third levels, 21 to 24, and the last eighth of sigma before each pitch doubling. Not to scale.</desc>
+  <desc id="desc">Small layout below sigma 11.5: full-resolution Gaussian below 1.62, fitted down/up pair to 2.40, pyramid to 11.5. Transition layout to 24, wide layout above, with its pitch doubling at 70, 140 and on. Hatched ranges mark where a level fades in: 1.46 to 1.62, the pyramid’s second level, 21 to 24, and the last eighth of sigma before each pitch doubling. Not to scale.</desc>
   <defs>
     <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="none"/><line x1="0" y1="0" x2="0" y2="6" stroke="#475569" stroke-width="1.6" stroke-opacity="0.45"/></pattern>
   </defs>
@@ -35,7 +35,6 @@
   <text x="421" y="98" class="label" style="font-size:13px">Wide</text>
   <rect x="88" y="70" width="14" height="46" fill="url(#hatch)"/>
   <rect x="198" y="70" width="12" height="46" fill="url(#hatch)"/>
-  <rect x="242" y="70" width="16" height="46" fill="url(#hatch)"/>
   <rect x="350" y="70" width="42" height="46" fill="url(#hatch)"/>
   <rect x="451" y="70" width="15" height="46" fill="url(#hatch)"/>
   <rect x="508" y="70" width="15" height="46" fill="url(#hatch)"/>
@@ -46,7 +45,7 @@
   <line class="axis" x1="172" y1="116" x2="172" y2="122"/>
   <text x="172" y="136" class="sub">2.40</text>
   <line class="axis" x1="292" y1="116" x2="292" y2="122"/>
-  <text x="292" y="136" class="sub">16.1</text>
+  <text x="292" y="136" class="sub">11.5</text>
   <line class="axis" x1="392" y1="116" x2="392" y2="122"/>
   <text x="392" y="136" class="sub">24</text>
   <line class="axis" x1="466" y1="116" x2="466" y2="122"/>

@@ -4,12 +4,12 @@ The blur runs one of three layouts, picked by sigma. A layout is a chain
 of render passes. As sigma grows, the passes' weights change, and at some
 sigmas the chain gains passes.
 
-- Small, below sigma 16.1. As sigma grows it takes three forms: a
+- Small, below sigma 11.5. As sigma grows it takes three forms: a
   full-resolution Gaussian, a fitted down/up pair, and a pyramid.
-- Transition, from 16.1 to 24.
+- Transition, from 11.5 to 24.
 - Wide, from 24.
 
-![Full-res Gaussian below sigma 1.62, fitted down/up pair to 2.40, pyramid to 16.1, transition to 24, wide above; hatching where a level fades in](Images/sigma-layouts.svg)
+![Full-res Gaussian below sigma 1.62, fitted down/up pair to 2.40, pyramid to 11.5, transition to 24, wide above; hatching where a level fades in](Images/sigma-layouts.svg)
 
 ## Terms
 
@@ -41,11 +41,11 @@ along one axis, in source pixels²:
 
 The total is under 24² = 576 because of the target's taper.
 
-Every layout hits the target variance to within 2 parts per million,
-ignoring GPU rounding. The shape is close but not exact. A single bright
-pixel's blur differs from the target by up to 6.2% of its brightness,
-summing absolute differences, worst at sigma 1.4–2.3
-([benchmarks](Benchmarks.md#summary)).
+Averaged over where a point falls between pixels, every layout hits the
+target variance to within 2 parts per million, ignoring GPU rounding.
+The shape is close but not exact. A single bright pixel's blur differs
+from the target by up to 6.2% of its brightness, summing absolute
+differences, worst at sigma 1.4–2.3 ([benchmarks](Benchmarks.md#summary)).
 
 ## Full-resolution Gaussian (below sigma 1.62)
 
@@ -56,9 +56,15 @@ summing absolute differences, worst at sigma 1.4–2.3
   fetches per axis runs as one 2D pass. From four it runs as separate X
   and Y passes, which measured 23% faster on M4.
 - While fading in a pyramid level, the Gaussian is always X then Y.
+- X and Y rows of up to 5, 8, 10 or 12 fetches run unrolled passes;
+  longer rows loop. Rows take 10 late in a level's fade, where a loop
+  takes up to 1.3 times as long on M4 and iPhone 17.
 - In the full-resolution Gaussian, the switch to X then Y is at sigma
   0.75.
 - From 1.46 to 1.62 the Gaussian fades in the fitted down/up pair.
+- With `BlurQuality.High` the Gaussian runs to 2.40 with its full taper
+  and never uses the fitted pair. From 2.24 to 2.40 it fades in the first
+  pyramid level.
 
 ## Fitted down/up pair (sigma 1.62–2.40)
 
@@ -84,27 +90,34 @@ slightly off. Below 1.72 the down's outer weights correct it. Over
 1.72–1.80 the Gaussian at 1/2 takes over that correction.
 [`Tools~/FilterFit`](../Tools~/FilterFit/README.md) reruns the fit.
 
-## Pyramid (sigma 2.40–16.1)
+## Pyramid (sigma 2.40–11.5)
 
 ![One level: binomial down to half resolution, a Gaussian, cubic up](Images/blur-pyramid-1.svg)
-![Two levels: binomial down to quarter resolution, a Gaussian, cubic up, then cubic turning bilinear up](Images/blur-pyramid-2.svg)
-![Three levels: binomial down to eighth resolution, a Gaussian, cubic up twice, then bilinear up](Images/blur-pyramid-3.svg)
+![Two levels: 2x down to quarter resolution, a Gaussian, cubic up, then cubic turning bilinear up](Images/blur-pyramid-2.svg)
 
-- Each level is a 6-tap binomial 2x down and a 2x cubic B-spline up,
-  except the outermost up below.
-- A second level fades in over sigma 3.94–4.22, a third over 8.00–8.55.
+- Each level is a 2x down and a 2x cubic B-spline up, except the
+  outermost up below.
+- The down is the 6-tap binomial below 5.9 (nine fetches) and
+  [1, 3, 3, 1] / 8 from 6.3 (four fetches). Over 5.9–6.3 one turns into
+  the other.
+- A second level fades in over sigma 3.94–4.22 (3.86–4.15 in a reduced
+  output). There is no third: the quarter-res Gaussian reaches 12
+  fetches by 11.5.
 - From 4.25 to 4.5 the outermost up blends from cubic to bilinear: one
   fetch per pixel instead of four.
 
-## Transition layout (sigma 16.1–24)
+## Transition layout (sigma 11.5–24)
 
 ![4x down to quarter, 2x down to eighth resolution (6 taps blending to 4), Gaussian X and Y, cubic up to quarter, bilinear up to full](Images/blur-wide-entry.svg)
 
-From the pyramid, the transition keeps the Gaussian at 1/8 and the 2x
-cubic up to 1/4. From the wide layout, it takes the outer passes:
+Like a third pyramid level, the transition runs the Gaussian at 1/8 and a
+2x cubic up to 1/4. From the wide layout, it takes the outer passes:
 
 - One 4x down replaces two 2x downs.
 - One 4x bilinear up replaces two 2x ups.
+
+It takes over from the pyramid at 11.5. From there its error stays
+under 1%.
 
 Its passes stay fixed up to 24; only weights change:
 
@@ -152,10 +165,10 @@ that level for real.
 ### What the fade can't hide
 
 Inside the small layout, a fade ends on exactly the level drawn next. At
-16.1, 24 and each doubling, the downs and ups change too. A virtual level
+11.5, 24 and each doubling, the downs and ups change too. A virtual level
 can't reproduce that:
 
-- 16.1 switches passes without a fade.
+- 11.5 switches passes without a fade.
 - At 24, the virtual level's 2x up and the 2x cubic up give way to one 4x
   cubic up.
 - At each doubling, the virtual level's 2x up and the 4x cubic up give way
@@ -165,19 +178,20 @@ Neither the transition nor the wide layout draws the virtual level's 2x
 up, so its weights are free to tune. `Tools~/FilterFit/fit_transition.py`
 places that up's fetches so the blur matches across 24 and each doubling.
 Doublings past sigma 560 reuse 560's fit. The largest remaining jump is at
-16.1. It is about as large as changing sigma by 0.13%
-([benchmarks](Benchmarks.md#continuity-and-motion)).
+11.5. It is about as large as changing sigma by 0.55%
+([benchmarks](Benchmarks.md#animation)).
 
 ## Reduced output
 
 `RecordReduced` skips the last bilinear up and returns a texture at 1/R
 resolution. The caller does the skipped upscale by sampling it bilinearly.
-R is the skipped up's scale factor: 2 in the pyramid from sigma 4.5, 4 in
-the transition, pitch/4 (at most 128) in the wide layout. Below 4.5 the
-outermost up is not fully bilinear, so R is 1.
+R is the skipped up's scale factor: 2 in the pyramid from sigma 3, 4 in
+the transition, pitch/4 (at most 128) in the wide layout. A reduced
+output's outermost up blends from cubic to bilinear over 2.75–3, instead
+of `Record`'s 4.25–4.5, so R is 1 below 3.
 
 R is halved until it divides both image sides. When the cap or halving
-lowers R, the transition and wide layouts still run a bilinear up, to 1/R.
+lowers R, the layout still runs the reduced output's bilinear up, to 1/R.
 The variance budget counts the sampler's upscale in place of the skipped
 pass.
 
@@ -244,7 +258,7 @@ Names used in the code:
 | Term | Meaning |
 |---|---|
 | Grid 1/N | A texture at 1/N resolution |
-| Down | The small layout's 2x down |
+| Down | The small layout's 2x down; DownHalve once it is [1, 3, 3, 1] / 8 |
 | Up | The small layout's and the transition's 2x up, fitted or cubic |
 | LinearUp | The pyramid's outermost up, once fully bilinear |
 | Quarter | The 4x down |

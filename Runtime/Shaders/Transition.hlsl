@@ -1,4 +1,4 @@
-// Sigma 16.1–24 transition on quarter/eighth-resolution grids. Coordinates are
+// Sigma 11.5–24 transition on quarter/eighth-resolution grids. Coordinates are
 // texel nodes: node n is texel n of the active image, and its center is
 // n + 0.5 in sampling coordinates. Allocation halos carry the original image
 // extension between stages; _TransitionSourceOrigin and

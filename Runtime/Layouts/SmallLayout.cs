@@ -7,10 +7,11 @@ using Crossfade = SteplessGaussianBlur.SmallKernel.Crossfade;
 
 namespace SteplessGaussianBlur
 {
-    // Passes of sigma below 16.1; their chain and coefficients are in
+    // Passes of sigma below 11.5; their chain and coefficients are in
     // Kernels/SmallKernel.cs and Kernels/FittedDownUp.cs, shaders in
-    // Shaders/Small.hlsl. From sigma 4.5 the outermost Up is bilinear, and a
-    // reduced output ends before it.
+    // Shaders/Small.hlsl. From sigma 4.5 the outermost Up is bilinear; a
+    // reduced output's is from 3, and where a scale divides both sides the
+    // output ends before it.
     public sealed partial class GaussianBlur
     {
         static readonly int TapsId = Shader.PropertyToID("_Taps");
@@ -23,6 +24,11 @@ namespace SteplessGaussianBlur
         TextureHandle RecordSmall(RenderGraph graph, in RecordContext context, float sigma, double variance)
         {
             TextureDesc input = context.input;
+            // In high quality the full-res row runs to 2.40, crossfading from
+            // 2.24 into the first pyramid level, which then replaces it.
+            if (quality == BlurQuality.High && variance < FittedDownUp.End)
+                return RecordGaussian(graph, context, context.source, input.width, input.height,
+                    halo: 0, variance, Crossfade.IntoFirstLevel, FinalTarget(graph, context, "Stepless Gaussian"));
             // From sigma 1.46 this row crossfades into the fitted Down/Up,
             // which then replaces it at 1.62.
             if (variance < SmallKernel.DownUpPassesStart)
@@ -30,24 +36,27 @@ namespace SteplessGaussianBlur
                     halo: 0, variance, Crossfade.IntoDownUp, FinalTarget(graph, context, "Stepless Gaussian"));
             if (variance < FittedDownUp.End)
                 return RecordFittedDownUp(graph, context, variance);
-            double bilinear = SmallKernel.OuterUpsampleBilinear(sigma);
+            double bilinear = SmallKernel.OuterUpsampleBilinear(sigma, context.reduced);
             double upVariance = SmallKernel.OuterUpsample(kernel, bilinear);
             double levelVariance = SmallKernel.OuterLevelVariance(variance, upVariance);
+            SmallKernel.PyramidDown down = SmallKernel.PyramidDown.At(sigma);
             if (context.outputScale == 1)
                 return RecordPyramidLevel(graph, context, context.source, input.width, input.height,
-                    halo: 0, levelVariance, bilinear, FinalTarget(graph, context, "Stepless Pyramid Up"));
+                    halo: 0, levelVariance, down, levels: 0, bilinear,
+                    FinalTarget(graph, context, "Stepless Pyramid Up"));
 
             // A reduced output is the outermost level's half-res result; the
             // viewer's bilinear sampling replaces its bilinear Up.
             TextureHandle half = RecordDown(graph, context, context.source, input.width, input.height,
-                halo: 0, SmallKernel.BinomialDown, "Stepless Pyramid Down");
+                halo: 0, down);
             return RecordPyramidLevel(graph, context, half, DivideUp(input.width, 2), DivideUp(input.height, 2),
-                ReducedHalo, SmallKernel.CoarseVariance(levelVariance),
+                ReducedHalo, down.CoarseVariance(levelVariance), down, levels: 1,
                 output: FinalTarget(graph, context, "Stepless Pyramid Reduced"));
         }
 
         /// <summary>A reduced output's scale: 2 once the outermost Up is bilinear, which the viewer's sampling replaces.</summary>
-        static int SmallReducedScale(float sigma) => SmallKernel.OuterUpsampleBilinear(sigma) == 1 ? 2 : 1;
+        static int SmallReducedScale(float sigma) =>
+            SmallKernel.OuterUpsampleBilinear(sigma, reduced: true) == 1 ? 2 : 1;
 
         /// <summary>Sigma 1.62 to 2.40: Down, a half-res Gaussian from 1.72, Up.</summary>
         TextureHandle RecordFittedDownUp(RenderGraph graph, in RecordContext context, double variance)
@@ -68,30 +77,30 @@ namespace SteplessGaussianBlur
         }
 
         /// <summary>
-        /// One pyramid level: binomial Down, the rest of the blur at half
-        /// resolution (a Gaussian or another level), cubic Up. Below
-        /// NextLevelFadeEnd the level is only a Gaussian.
+        /// One pyramid level: Down, the rest of the blur at half resolution
+        /// (a Gaussian or another level), cubic Up. Below the down's fade end
+        /// the level is only a Gaussian.
         /// </summary>
         /// <param name="halo">Halo around <paramref name="source"/>; zero at full resolution.</param>
+        /// <param name="levels">Downs before <paramref name="source"/>.</param>
         /// <param name="outerBilinear">
         /// How far this level's Up has turned bilinear; outermost level only, whose taps
         /// SmallKernel.OuterUpsample has written.
         /// </param>
         /// <param name="output">The final target, or default for a new texture.</param>
         TextureHandle RecordPyramidLevel(RenderGraph graph, in RecordContext context, TextureHandle source,
-            int width, int height, int halo, double variance, double outerBilinear = 0,
-            TextureHandle output = default)
+            int width, int height, int halo, double variance, in SmallKernel.PyramidDown down, int levels,
+            double outerBilinear = 0, TextureHandle output = default)
         {
-            if (variance < SmallKernel.NextLevelFadeStart)
+            if (variance < down.fadeStart || levels >= SmallKernel.MaxPyramidLevels)
                 return RecordGaussian(graph, context, source, width, height, halo, variance, Crossfade.None, output);
-            if (variance < SmallKernel.NextLevelFadeEnd)
+            if (variance < down.fadeEnd)
                 return RecordGaussian(graph, context, source, width, height, halo, variance,
-                    Crossfade.IntoNextLevel, output);
+                    Crossfade.IntoNextLevel, output, down);
 
-            TextureHandle half = RecordDown(graph, context, source, width, height, halo,
-                SmallKernel.BinomialDown, "Stepless Pyramid Down");
+            TextureHandle half = RecordDown(graph, context, source, width, height, halo, down);
             half = RecordPyramidLevel(graph, context, half, DivideUp(width, 2), DivideUp(height, 2),
-                ReducedHalo, SmallKernel.CoarseVariance(variance));
+                ReducedHalo, down.CoarseVariance(variance), down, levels + 1);
 
             bool bilinear = outerBilinear == 1;
             Vector4[] taps = SmallKernel.CubicUp;
@@ -115,12 +124,31 @@ namespace SteplessGaussianBlur
                 name, sourceHalo: halo, targetHalo: ReducedHalo);
         }
 
+        /// <summary>A pyramid level's Down; four fetches once it halves.</summary>
+        TextureHandle RecordDown(RenderGraph graph, in RecordContext context, TextureHandle source,
+            int width, int height, int halo, in SmallKernel.PyramidDown down)
+        {
+            if (!down.Halves)
+            {
+                down.Pack(kernel.downTaps);
+                return RecordDown(graph, context, source, width, height, halo, kernel.downTaps,
+                    "Stepless Pyramid Down");
+            }
+            const string name = "Stepless Pyramid Halve";
+            TextureHandle half = CreateTarget(graph, context, DivideUp(width, 2) + 2 * ReducedHalo,
+                DivideUp(height, 2) + 2 * ReducedHalo, name);
+            return RecordSmallPass(graph, context, source, half, ShaderPass.DownHalve, Array.Empty<Vector4>(),
+                count: 0, name, sourceHalo: halo, targetHalo: ReducedHalo);
+        }
+
         /// <summary>One Gaussian stage, as a single 2D pass or as horizontal and vertical passes.</summary>
         /// <param name="output">The final target, or default for a new texture.</param>
+        /// <param name="down">The pyramid's down, for <see cref="Crossfade.IntoNextLevel"/>; binomial when omitted.</param>
         TextureHandle RecordGaussian(RenderGraph graph, in RecordContext context, TextureHandle source,
-            int width, int height, int halo, double variance, Crossfade crossfade, TextureHandle output = default)
+            int width, int height, int halo, double variance, Crossfade crossfade, TextureHandle output = default,
+            SmallKernel.PyramidDown? down = null)
         {
-            int count = SmallKernel.GaussianRows(kernel, variance, crossfade);
+            int count = SmallKernel.GaussianRows(kernel, variance, crossfade, down ?? SmallKernel.PyramidDown.Binomial);
 
             // Separable from four fetches per axis (23% faster than 2D on M4).
             bool separable = crossfade == Crossfade.IntoNextLevel || count >= 4;
@@ -143,7 +171,7 @@ namespace SteplessGaussianBlur
         // RecordGaussian goes separable from four fetches per axis.
         static ShaderPass Gaussian2DPass(int count) => count <= 2 ? ShaderPass.Gaussian2D2 : ShaderPass.Gaussian2D3;
 
-        static ShaderPass AxisPass(int count, bool vertical)
+        internal static ShaderPass AxisPass(int count, bool vertical)
         {
             // Unrolled passes pad shorter rows with zero-weight taps; unrolling
             // six to eight fetches made sigma 3-3.8 blurs 7-10% faster on M4.
@@ -151,6 +179,15 @@ namespace SteplessGaussianBlur
                 return vertical ? ShaderPass.Vertical5 : ShaderPass.Horizontal5;
             if (count >= 6 && count <= 8)
                 return vertical ? ShaderPass.Vertical8 : ShaderPass.Horizontal8;
+            // Pyramid crossfades take ten fetches; the pyramid's quarter-res
+            // rows and High's full-res rows up to twelve. These tiers fit those counts, since padding costs every
+            // GPU. Against the loop, ten-fetch rows ran about 20% faster on M4,
+            // 11-21% on iPhone 17 and 2-5% on Adreno 830, and the same on
+            // Mali-G68.
+            if (count >= 9 && count <= 10)
+                return vertical ? ShaderPass.Vertical10 : ShaderPass.Horizontal10;
+            if (count >= 11 && count <= 12)
+                return vertical ? ShaderPass.Vertical12 : ShaderPass.Horizontal12;
             return vertical ? ShaderPass.Vertical : ShaderPass.Horizontal;
         }
 
@@ -158,13 +195,11 @@ namespace SteplessGaussianBlur
             => pass == ShaderPass.Gaussian2D2 || pass == ShaderPass.Gaussian2D3;
 
         // Any pass Gaussian2DPass or AxisPass selects.
-        static bool IsGaussianPass(ShaderPass pass)
+        internal static bool IsGaussianPass(ShaderPass pass)
         {
             for (int count = 1; count <= SmallKernel.MaxFetches; count++)
-            {
                 if (pass == Gaussian2DPass(count) || pass == AxisPass(count, false) || pass == AxisPass(count, true))
                     return true;
-            }
             return false;
         }
 

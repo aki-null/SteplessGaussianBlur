@@ -17,15 +17,17 @@ namespace SteplessGaussianBlur.Tests
         {
             // Pyramid, transition and wide at their largest scale, and the
             // wide layout magnifying to a smaller scale where the sides allow
-            // only that.
+            // only that. Below sigma 3, and on sides no scale divides, a
+            // reduced output keeps full size with its own bilinear Up.
             var target = new BlurTarget(format: FloatFormat);
             try
             {
                 // RecordReduced's own texture, then a BlurTarget.
                 foreach (BlurTarget written in new[] { null, target })
                 {
-                    foreach (float sigma in new[] { 4.5f, 8.6f, 16f, 16.125f, 21f, 23.99f })
+                    foreach (float sigma in new[] { 2.9f, 3f, 3.5f, 4.5f, 8.6f, 11.5f, 12f, 16f, 16.125f, 21f, 23.99f })
                         yield return RunCase(new BlurCase(66, 50, sigma) { Reduced = true, Target = written });
+                    yield return RunCase(new BlurCase(33, 25, 3.5f) { Reduced = true, Target = written });
                     yield return RunCase(new BlurCase(64, 48, 24) { Reduced = true, Target = written });
                     yield return RunCase(new BlurCase(66, 50, 30) { Reduced = true, Target = written });
                 }
@@ -140,7 +142,8 @@ namespace SteplessGaussianBlur.Tests
                 {
                     (30f, 4, new Vector2Int(16, 12)),
                     (40f, 4, new Vector2Int(16, 12)),
-                    (3f, 1, new Vector2Int(64, 48)),
+                    (2.5f, 1, new Vector2Int(64, 48)),
+                    (3f, 2, new Vector2Int(32, 24)),
                     (8f, 2, new Vector2Int(32, 24))
                 })
                 {
@@ -149,7 +152,8 @@ namespace SteplessGaussianBlur.Tests
                     Assert.That(target.Texture, Is.SameAs(texture), $"sigma {sigma}: texture");
                     Assert.That(new Vector2Int(texture.width, texture.height), Is.EqualTo(size), $"sigma {sigma}: size");
                     yield return ReadBack(texture, actual => AssertPixels(actual,
-                        BlurGpuReference.Blur(pixels, width, height, sigma, scale), MaximumError, FloatMeanError,
+                        BlurGpuReference.Blur(pixels, width, height, sigma, scale, reduced: true), MaximumError,
+                        FloatMeanError,
                         $"Target at sigma {sigma}"));
                 }
                 // A target's own texture cannot be its source.

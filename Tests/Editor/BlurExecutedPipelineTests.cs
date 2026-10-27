@@ -30,7 +30,7 @@ namespace SteplessGaussianBlur.Tests
         static readonly float[] Switches =
         {
             0.740902f, 1.25f, 1.46f, 1.6160f, 1.7237f, 1.80f, 2.40f, 3.937810f, 4.218166f, 4.25f, 4.5f,
-            8.002574f, 8.554936f,
+            5.9f, 6.3f, 11.5f,
             16.1f, 16.1875f, 16.6f, 21, 24, 64, 70, 140
         };
 
@@ -54,7 +54,7 @@ namespace SteplessGaussianBlur.Tests
         // Worst summed absolute difference from the tapered Gaussian, per range
         // of sigma: the shape each layout reaches with exact width.
         static double ShapeBound(float sigma) =>
-            sigma < 0.740902f ? 0.007 : sigma < 2.4f ? 0.052 : sigma < 16.1f ? 0.011 : 0.0075;
+            sigma < 0.740902f ? 0.007 : sigma < 2.4f ? 0.052 : sigma < TransitionKernel.StartSigma ? 0.011 : 0.0075;
 
         [Test]
         public void EveryLayoutKeepsMassCenterAndRequestedWidth()
@@ -74,7 +74,7 @@ namespace SteplessGaussianBlur.Tests
                     var m = ExecutedPipeline.Measure(response, position);
                     Assert.That(m.mass, Is.EqualTo(1).Within(1e-6), $"sigma {sigma:R}, phase {p}: energy");
                     // The fixed quarter-resolution pass centers each source
-                    // phase within 1/128 pixel; below sigma 16.1 rounding to the
+                    // phase within 1/128 pixel; below the transition rounding to the
                     // sampler grid leaves a little more.
                     double center = sigma >= TransitionKernel.StartSigma ? 1.0 / 128 + 1e-6 : 0.011;
                     Assert.That(Math.Abs(m.mean), Is.LessThan(center), $"sigma {sigma:R}, phase {p}: center");
@@ -97,32 +97,30 @@ namespace SteplessGaussianBlur.Tests
 
         // A reduced output, sampled bilinearly at full resolution, keeps the
         // layout's energy, center and width at every scale up to its
-        // largest. At the largest, it is the full output: the viewer's
-        // sampling is the layout's own last pass, which
-        // EveryLayoutKeepsMassCenterAndRequestedWidth checks. Reduced budgets
-        // are analytic in sigma, so a coarser grid suffices.
+        // largest. At the largest, it is the reduced layout at full size:
+        // the viewer's sampling is that layout's own last pass. Reduced
+        // budgets are analytic in sigma, so a coarser grid suffices.
         [Test]
         public void OutputSizesKeepMassCenterAndRequestedWidth()
         {
-            foreach (float sigma in Strengths(100))
+            foreach (float sigma in ReducedStrengths(100))
             {
                 int largest = GaussianBlur.ReducedScale(sigma, 1 << 20, 1 << 20);
-                if (largest == 1)
-                    continue;
                 var (length, point) = ExecutedPipeline.Frame(sigma);
                 double target = ExecutedPipeline.TargetVariance(sigma);
-                for (int scale = 2; scale <= largest; scale *= 2)
+                for (int scale = 1; scale <= largest; scale *= 2)
                 {
                     double second = 0;
                     for (int p = 0; p < Phases; p++)
                     {
                         int position = point + p;
-                        double[] response = ExecutedPipeline.Respond(sigma, length, position, scale);
+                        double[] response = ExecutedPipeline.Respond(sigma, length, position, scale, reduced: true);
                         string label = $"sigma {sigma:R}, scale {scale}, phase {p}";
-                        if (scale == largest)
+                        if (scale == largest && largest > 1)
                         {
-                            Assert.That(ExecutedPipeline.L1(response, ExecutedPipeline.Respond(sigma, length, position)),
-                                Is.LessThan(1e-12), label + ": full output");
+                            Assert.That(ExecutedPipeline.L1(response,
+                                ExecutedPipeline.Respond(sigma, length, position, reduced: true)),
+                                Is.LessThan(1e-12), label + ": full-size reduced output");
                             continue;
                         }
                         var m = ExecutedPipeline.Measure(response, position);
@@ -133,12 +131,135 @@ namespace SteplessGaussianBlur.Tests
                             label + ": shape");
                         second += m.variance + m.mean * m.mean;
                     }
-                    if (scale < largest)
+                    if (scale < largest || largest == 1)
                         Assert.That(second / Phases / target, Is.EqualTo(1).Within(2e-6),
                             $"sigma {sigma:R}, scale {scale}: width");
                 }
             }
         }
+
+        // Strengths, with both sides of the reduced output's own switches.
+        static IEnumerable<float> ReducedStrengths(int count)
+        {
+            foreach (float s in Strengths(count))
+                yield return s;
+            foreach (float s in ReducedSwitches)
+            {
+                yield return Below(s);
+                yield return s;
+            }
+        }
+
+        static readonly float[] ReducedSwitches =
+            { (float)SmallKernel.ReducedBilinearStartSigma, (float)SmallKernel.ReducedBilinearEndSigma };
+
+        // A reduced output computes what Record does, except where its Up is
+        // already bilinear and Record's is not.
+        [TestCase(1.3f)]
+        [TestCase(2.6f)]
+        [TestCase(2.749f)]
+        [TestCase(4.5f)]
+        [TestCase(10f)]
+        [TestCase(30f)]
+        public void ReducedOutputMatchesRecordOutsideItsBilinearRange(float sigma)
+        {
+            var (length, point) = ExecutedPipeline.Frame(sigma);
+            for (int p = 0; p < 4; p++)
+                Assert.That(ExecutedPipeline.L1(ExecutedPipeline.Respond(sigma, length, point + p, reduced: true),
+                    ExecutedPipeline.Respond(sigma, length, point + p)), Is.LessThan(1e-12), $"phase {p}");
+        }
+
+        [TestCase(2.9f)]
+        [TestCase(3.5f)]
+        [TestCase(4.4f)]
+        public void ReducedOutputTurnsBilinearBeforeRecord(float sigma)
+        {
+            var (length, point) = ExecutedPipeline.Frame(sigma);
+            Assert.That(ExecutedPipeline.L1(ExecutedPipeline.Respond(sigma, length, point, reduced: true),
+                ExecutedPipeline.Respond(sigma, length, point)), Is.GreaterThan(1e-4));
+        }
+
+        // Across the reduced output's own switches, at its largest scale,
+        // and where its downs turn into [1, 3, 3, 1].
+        [TestCase(2.75f, 0.0006)]
+        [TestCase(3f, 0.0006)]
+        [TestCase(5.9f, 0.0011)]
+        [TestCase(6.3f, 0.0006)]
+        public void ReducedSwitchesKeepTheResponse(float sigma, double budget)
+        {
+            float below = sigma - 1e-5f, above = sigma + 1e-5f;
+            var (length, point) = ExecutedPipeline.Frame(above);
+            for (int p = 0; p < Phases; p++)
+            {
+                double change = ExecutedPipeline.L1(ReducedResponse(below, length, point + p),
+                    ReducedResponse(above, length, point + p));
+                Assert.That(change, Is.LessThan(budget), $"phase {p}");
+            }
+        }
+
+        // A reduced output's bilinear Up budgets less variance than the cubic
+        // Up, so its second level crossfades in at lower sigma than Record's.
+        [TestCase(SmallKernel.NextLevelFadeStart, 1)]
+        [TestCase(SmallKernel.NextLevelFadeEnd, 1)]
+        public void ReducedLevelCrossfadesKeepTheResponse(double coarse, int levels)
+        {
+            double sigma = ReducedLevelSwitchSigma(coarse, levels);
+            TestContext.WriteLine($"reduced level switch at sigma {sigma:F6}");
+            float below = (float)sigma - 1e-5f, above = (float)sigma + 1e-5f;
+            var (length, point) = ExecutedPipeline.Frame(above);
+            for (int p = 0; p < Phases; p++)
+            {
+                double change = ExecutedPipeline.L1(ReducedResponse(below, length, point + p),
+                    ReducedResponse(above, length, point + p));
+                Assert.That(change, Is.LessThan(0.0006), $"phase {p}");
+            }
+        }
+
+        // The sigma at which a reduced output's Gaussian `levels` downsamples
+        // below the outermost level reaches the variance `coarse`.
+        static double ReducedLevelSwitchSigma(double coarse, int levels)
+        {
+            double target = coarse;
+            for (int i = 0; i < levels; i++)
+                target = SmallKernel.LevelVariance + 4 * target;
+            var workspace = new SmallKernel.Workspace();
+            double low = SmallKernel.ReducedBilinearEndSigma, high = 16;
+            for (int i = 0; i < 100; i++)
+            {
+                double middle = (low + high) * 0.5;
+                double up = SmallKernel.OuterUpsample(workspace, SmallKernel.OuterUpsampleBilinear(middle, reduced: true));
+                if (SmallKernel.OuterLevelVariance(BlurMath.RequestedVariance(middle), up) < target)
+                    low = middle;
+                else
+                    high = middle;
+            }
+            return (low + high) * 0.5;
+        }
+
+        // As ResponseChangesSmoothlyWithSigma, for a reduced output.
+        [Test]
+        public void ReducedResponseChangesSmoothlyWithSigma()
+        {
+            const double lo = 2.4, hi = 5, step = 2e-4;
+            for (int i = 0; i < 300; i++)
+            {
+                float sigma = (float)(lo * Math.Pow(hi / lo, i / 300.0));
+                float next = (float)(sigma * (1 + step));
+                var (length, point) = ExecutedPipeline.Frame(next);
+                double ideal = TargetChange(sigma, next);
+                for (int p = 0; p < 4; p++)
+                {
+                    double change = ExecutedPipeline.L1(ReducedResponse(sigma, length, point + p),
+                        ReducedResponse(next, length, point + p));
+                    Assert.That(change / ideal, Is.LessThan(12), $"sigma {sigma:R}, phase {p}");
+                }
+            }
+        }
+
+        // A reduced output at its largest scale, sampled back to full resolution.
+        static double[] ReducedResponse(float sigma, int length, int point) =>
+            ExecutedPipeline.Respond(sigma, length, point, GaussianBlur.ReducedScale(sigma, 1 << 20, 1 << 20),
+                reduced: true);
 
         [Test]
         public void WidthGrowsWithSigma()
@@ -169,8 +290,9 @@ namespace SteplessGaussianBlur.Tests
         [TestCase(0.3, 0.740902, 55)]
         [TestCase(0.740902, 1.616, 45)]
         [TestCase(1.616, 2.4, 25)]
-        [TestCase(2.4, 16.1, 12)]
-        [TestCase(16.1, 24, 18)]
+        // The pyramid's largest, 10.6, is at sigma 7.04.
+        [TestCase(2.4, 11.5, 12)]
+        [TestCase(11.5, 24, 18)]
         [TestCase(24, 256, 12)]
         public void ResponseChangesSmoothlyWithSigma(double lo, double hi, double bound)
         {
@@ -196,8 +318,9 @@ namespace SteplessGaussianBlur.Tests
         // Where the layouts are designed to meet, the budget is the size of
         // an ordinary step to the next sampler grid point (up to 5.5e-4).
         // The full-res row's handover to real down/up passes (sigma 1.616),
-        // the transition and the pitch switches get their measured steps
-        // with a little room.
+        // the transition (0.62% at 11.5), the down's first 1/256 step toward
+        // [1, 3, 3, 1] (0.10% at 5.9) and the pitch switches get their
+        // measured steps with a little room.
         [TestCase(0.740902f, 0.0006)]
         [TestCase(0.75f, 0.0006)]
         [TestCase(1.46f, 0.0006)]
@@ -209,8 +332,10 @@ namespace SteplessGaussianBlur.Tests
         [TestCase(4.218166f, 0.0006)]
         [TestCase(4.25f, 0.0006)]
         [TestCase(4.5f, 0.0006)]
-        [TestCase(8.554936f, 0.0006)]
-        [TestCase(16.1f, 0.0030)]
+        [TestCase(5.9f, 0.0011)]
+        [TestCase(6.3f, 0.0006)]
+        [TestCase(11.5f, 0.0070)]
+        [TestCase(16.1f, 0.0006)]
         [TestCase(16.6f, 0.0006)]
         [TestCase(21f, 0.0006)]
         [TestCase(24f, 0.0015)]
@@ -229,6 +354,33 @@ namespace SteplessGaussianBlur.Tests
             }
         }
 
+        // Over 5.9-6.3 the down's outer fetch moves one 1/256 step at a
+        // time, the finest the sampler holds. Each step changes the
+        // response by up to 0.20% (at 6.243).
+        [Test]
+        public void HalvingDownStepsStaySmall()
+        {
+            int previous = SmallKernel.PyramidDown.At(SmallKernel.HalveStartSigma).far;
+            for (int i = 1; i <= 20000; i++)
+            {
+                double sigma = SmallKernel.HalveStartSigma +
+                    i * (SmallKernel.HalvedSigma - SmallKernel.HalveStartSigma) / 20000;
+                int far = SmallKernel.PyramidDown.At(sigma).far;
+                if (far == previous)
+                    continue;
+                previous = far;
+                float below = (float)(sigma - 1e-5), above = (float)(sigma + 1e-5);
+                var (length, point) = ExecutedPipeline.Frame(above);
+                for (int p = 0; p < Phases; p++)
+                {
+                    double change = ExecutedPipeline.L1(ExecutedPipeline.Respond(below, length, point + p),
+                        ExecutedPipeline.Respond(above, length, point + p));
+                    Assert.That(change, Is.LessThan(0.0022), $"sigma {sigma:R}, phase {p}");
+                }
+            }
+            Assert.That(previous, Is.EqualTo(0));
+        }
+
         [Test]
         public void SmallLayoutFetchesSitOnTheSamplerGrid()
         {
@@ -237,7 +389,7 @@ namespace SteplessGaussianBlur.Tests
             var taps = new Vector4[4];
             for (int i = 0; i < 2000; i++)
             {
-                double sigma = 0.3 * Math.Pow(16.1 / 0.3, i / 1999.0);
+                double sigma = 0.3 * Math.Pow(TransitionKernel.StartSigma / 0.3, i / 1999.0);
                 double variance = BlurMath.RequestedVariance(sigma);
                 // Each Gaussian stage where a layout uses it.
                 SmallKernel.Crossfade crossfade = variance < SmallKernel.DownUpPassesStart ?
@@ -265,7 +417,9 @@ namespace SteplessGaussianBlur.Tests
                 for (int k = 0; k < 4; k++)
                     AssertOnGrid(workspace.outerTaps[k].x, sigma);
             }
-            foreach (Vector4 tap in SmallKernel.BinomialDown)
+            var downTaps = new Vector4[3];
+            SmallKernel.PyramidDown.Binomial.Pack(downTaps);
+            foreach (Vector4 tap in downTaps)
                 AssertOnGrid(tap.x, 0);
             foreach (Vector4 tap in SmallKernel.CubicUp)
                 AssertOnGrid(tap.x, 0);

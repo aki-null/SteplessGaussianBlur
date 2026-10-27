@@ -26,6 +26,10 @@ namespace SteplessGaussianBlur
         [Tooltip("When in the frame the camera color is blurred.")]
         RenderPassEvent injectionPoint = RenderPassEvent.AfterRenderingPostProcessing;
 
+        [SerializeField]
+        [Tooltip("High runs a full-resolution Gaussian below sigma 2.24, joining Fast by 2.4: slower, more accurate.")]
+        BlurQuality quality = BlurQuality.Fast;
+
         BlurPass blurPass;
         GaussianBlur blur;
 
@@ -33,9 +37,12 @@ namespace SteplessGaussianBlur
         public override void Create()
         {
             blur?.Dispose();
+            blur = null;
             try
             {
                 blur = new GaussianBlur();
+                // Throws for an undefined serialized value; the catch frees the materials.
+                blur.Quality = quality;
             }
             catch (System.Exception exception) when (exception is System.ArgumentException ||
                 exception is System.InvalidOperationException)
@@ -43,6 +50,7 @@ namespace SteplessGaussianBlur
                 // URP constructs renderers without guarding Create(). Disable
                 // only this feature, for a missing or unsupported shader, rather
                 // than every camera that uses the renderer.
+                blur?.Dispose();
                 blur = null;
                 blurPass = null;
                 Debug.LogWarning("Stepless Gaussian Blur is disabled: " + exception.Message);

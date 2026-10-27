@@ -63,7 +63,7 @@ SAMPLES = 48                  # Up fit samples over the whole range
 # moves weight from the center taps to the outer ones and keeps both.
 DOWN_BASE = np.array([1/6, 11/48, 5/48])
 DOWN_SLIDE = np.array([-2, 1, 1])/math.sqrt(6)
-BINOMIAL_DOWN = np.array(k.BINOMIAL[2::-1])  # the pyramid's Down: (10, 5, 1) / 32
+BINOMIAL_DOWN = np.array(k.BINOMIAL.weights[2::-1])  # the pyramid's Down: (10, 5, 1) / 32
 # Up ends at the pyramid's up as the sampler runs it: SmallKernel.CubicUp's
 # two even-phase fetches, as weights of half-res texels J - 2 .. J + 1 for
 # even output 2J, which sits at J - 1/4.

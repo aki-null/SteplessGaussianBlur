@@ -1,4 +1,4 @@
-"""1D model of the layouts around sigma 16.1 to 24, sampled the way the shaders sample.
+"""1D model of the layouts around sigma 11.5 to 24, sampled the way the shaders sample.
 
 Signals are arrays of shape (texels, impulses) on one grid. Array index n is
 the shaders' node n, and positions are in node units: node n sits at
@@ -71,17 +71,19 @@ def _cubic(signal, n, cubic):
 def pyramid(source, sigma):
     if k.outer_upsample_bilinear(sigma) != 1:
         raise ValueError('model covers the pyramid only where its outer up is bilinear (sigma >= 4.5)')
-    return _pyramid_level(source, k.outer_level_variance(k.requested_variance(sigma), k.outer_upsample(1.)[1]), outer=True)
+    variance = k.outer_level_variance(k.requested_variance(sigma), k.outer_upsample(1.)[1])
+    return _pyramid_level(source, variance, k.PyramidDown.at(sigma), levels=0, outer=True)
 
 
-def _pyramid_level(source, variance, outer=False):
+def _pyramid_level(source, variance, down, levels, outer=False):
     n = source.shape[0]
-    if variance < k.NEXT_LEVEL_FADE_END:
-        rows = k.gaussian_rows(variance, variance >= k.NEXT_LEVEL_FADE_START)
+    if variance < down.fade_end or levels >= k.MAX_PYRAMID_LEVELS:
+        crossfade = down.fade_start <= variance and levels < k.MAX_PYRAMID_LEVELS
+        rows = k.gaussian_rows(variance, crossfade, down)
         return _by_parity(source, n, rows, snap_offsets=True)
     half_n = math.ceil(n/2)
-    half = _fetches(source, 2*np.arange(half_n)+0.5, k.BINOMIAL_DOWN, snap_offsets=True)
-    half = _pyramid_level(half, k.coarse_variance(variance))
+    half = _fetches(source, 2*np.arange(half_n)+0.5, down.fetches, snap_offsets=True)
+    half = _pyramid_level(half, down.coarse_variance(variance), down, levels+1)
     x = np.arange(n)
     if outer:
         return sample(half, x/2-0.25)  # FragLinearUp

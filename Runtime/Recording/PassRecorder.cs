@@ -27,8 +27,8 @@ namespace SteplessGaussianBlur
         {
             // Small layouts (Shaders/Small.hlsl).
             Gaussian2D2, Gaussian2D3,
-            Horizontal, Vertical, Horizontal5, Vertical5, Horizontal8, Vertical8,
-            Down, Up, LinearUp, Copy,
+            Horizontal, Vertical, Horizontal5, Vertical5, Horizontal8, Vertical8, Horizontal10, Vertical10, Horizontal12, Vertical12,
+            Down, DownHalve, Up, LinearUp, Copy,
             // Transition layout (Shaders/Transition.hlsl).
             TransitionHalveBlend,
             TransitionGaussianH, TransitionGaussianV,
