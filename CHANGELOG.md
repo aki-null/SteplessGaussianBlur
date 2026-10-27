@@ -28,7 +28,7 @@
 - Blurs from sigma 11.5 to 16.1 are faster: 24–30% on M4, 26% on Adreno
   830 and 15–26% on Immortalis-G925. The layout used from 16.1 now starts
   at 11.5. Error stays under 1%: 0.9% at 11.5, against 0.4% before.
-  Animating strength across 11.5 changes the output as much as a 0.46%
+  Animating strength across 11.5 changes the output as much as a 0.55%
   change of sigma.
 - `RecordReduced` and a default `BlurTarget` return a quarter-size texture
   from sigma 11.5 instead of 16.1, when both sides divide by 4.

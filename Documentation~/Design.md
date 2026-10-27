@@ -41,11 +41,11 @@ along one axis, in source pixels²:
 
 The total is under 24² = 576 because of the target's taper.
 
-Every layout hits the target variance to within 2 parts per million,
-ignoring GPU rounding. The shape is close but not exact. A single bright
-pixel's blur differs from the target by up to 6.2% of its brightness,
-summing absolute differences, worst at sigma 1.4–2.3
-([benchmarks](Benchmarks.md#summary)).
+Averaged over where a point falls between pixels, every layout hits the
+target variance to within 2 parts per million, ignoring GPU rounding.
+The shape is close but not exact. A single bright pixel's blur differs
+from the target by up to 6.2% of its brightness, summing absolute
+differences, worst at sigma 1.4–2.3 ([benchmarks](Benchmarks.md#summary)).
 
 ## Full-resolution Gaussian (below sigma 1.62)
 
@@ -57,8 +57,8 @@ summing absolute differences, worst at sigma 1.4–2.3
   and Y passes, which measured 23% faster on M4.
 - While fading in a pyramid level, the Gaussian is always X then Y.
 - X and Y rows of up to 5, 8, 10 or 12 fetches run unrolled passes;
-  longer rows loop. Late in a level's fade, rows take 10. Looped, those rows took
-  up to 1.3 times as long on M4 and iPhone 17.
+  longer rows loop. Rows take 10 late in a level's fade, where a loop
+  takes up to 1.3 times as long on M4 and iPhone 17.
 - In the full-resolution Gaussian, the switch to X then Y is at sigma
   0.75.
 - From 1.46 to 1.62 the Gaussian fades in the fitted down/up pair.
@@ -178,8 +178,8 @@ Neither the transition nor the wide layout draws the virtual level's 2x
 up, so its weights are free to tune. `Tools~/FilterFit/fit_transition.py`
 places that up's fetches so the blur matches across 24 and each doubling.
 Doublings past sigma 560 reuse 560's fit. The largest remaining jump is at
-11.5. It is about as large as changing sigma by 0.23%
-([benchmarks](Benchmarks.md#continuity-and-motion)).
+11.5. It is about as large as changing sigma by 0.55%
+([benchmarks](Benchmarks.md#animation)).
 
 ## Reduced output
 

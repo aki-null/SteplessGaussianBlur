@@ -30,18 +30,20 @@ in the rest. Stepless aims to hold up across the whole range:
 
 On M4 at 4K, blurring a photographed scene:
 
-- Stepless's cost stays in a narrow band, highest at small strengths and
+- Stepless's cost stays in a narrow band, highest up to sigma 4.2 and
   falling as the blur widens. Skia and MPS jump in cost where they switch
   internal levels.
-- At wide strengths, Stepless takes about half the time of Original Dual
-  Blur, and it also reaches the strengths between Dual Blur's levels.
+- At wide strengths, Stepless takes about half the time of Dual Blur,
+  and it also reaches the strengths between Dual Blur's levels.
+- Smol, another variance-compensated pyramid, takes 1.3–1.5 times as
+  long from sigma 16, with 5–14% error from sigma 6.
 - Stepless stays close to a Gaussian except at sigma 1.4–2.3, where its
-  error peaks at 6% near 1.6.
+  error peaks at about 6% near 1.6.
   Skia's error grows large at wide strengths and depends on where a
   highlight falls on its coarse grid.
 
 [Benchmark details](Documentation~/Benchmarks.md) cover the iPhone,
-Adreno, Xclipse, Immortalis and Mali GPUs, texture writes and methods.
+iPad, Adreno, Xclipse, Immortalis and Mali GPUs, animation and methods.
 
 ## Installation
 
@@ -127,8 +129,9 @@ TextureHandle blurred = blur.Record(graph, source, sigma);
   `WarmUpShaders(cameraColorFormat)`. With a destination or target format
   you chose, use `WarmUpShaders(sourceFormat, destinationFormat)`.
 - Set `blur.Quality = BlurQuality.High`, or the feature's **Quality**,
-  to keep the error under 0.5% up to sigma 2.3, where the default
-  reaches 6%. It costs up to 1.75 times as much there on M4.
+  to keep the error under 0.5% up to sigma 2.3. Over 1.4–2.3 the
+  default's error peaks at 6%. High costs up to 1.6 times as much there
+  on M4.
 - Alpha is blurred like color. Use premultiplied color for compositing.
 - FP16 blurs lose a little brightness on some GPUs. For a blur that feeds
   back into itself every frame, use a float32 target.
