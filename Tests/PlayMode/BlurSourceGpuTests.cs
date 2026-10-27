@@ -76,6 +76,41 @@ namespace SteplessGaussianBlur.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator PackedOutputRoundsTiesToEven()
+        {
+            if (!SystemInfo.IsFormatSupported(GraphicsFormat.B10G11R11_UFloatPack32, GraphicsFormatUsage.Render))
+                Assert.Ignore("Packed HDR targets are unavailable.");
+            // A zero-strength blur into a packed destination copies each
+            // texel through the packed-output rounding. Each value lies
+            // exactly halfway between two packed values (6 mantissa bits in
+            // red and green, 5 in blue). The first pixel's lower neighbor is
+            // even, so rounding up fails it; the second's is odd, so
+            // truncation fails it.
+            var input = new[]
+            {
+                new Color(0.5f + 0.5f / 128, 0.5f + 0.5f / 128, 0.5f + 0.5f / 64, 1),
+                new Color(0.5f + 1.5f / 128, 0.5f + 1.5f / 128, 0.5f + 1.5f / 64, 1)
+            };
+            var expected = new[]
+            {
+                new Color(0.5f, 0.5f, 0.5f, 1),
+                new Color(0.5f + 2f / 128, 0.5f + 2f / 128, 0.5f + 2f / 64, 1)
+            };
+            Color[] actual = null;
+            yield return RunCase(new BlurCase(2, 1, 0)
+            {
+                InputPixels = input,
+                DestinationFormat = GraphicsFormat.B10G11R11_UFloatPack32,
+                WriteToDestination = true,
+                CompareReference = false,
+                ReceiveResult = result => actual = result
+            });
+            for (int i = 0; i < expected.Length; i++)
+                for (int channel = 0; channel < 3; channel++)
+                    Assert.That(actual[i][channel], Is.EqualTo(expected[i][channel]), $"pixel {i}, channel {channel}");
+        }
+
         // A dark gradient, a lit wall, sparse highlights and texture noise,
         // each value exact in B10G11R11.
         static Color[] PackedHdrScene(int width, int height)

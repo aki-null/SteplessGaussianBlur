@@ -57,15 +57,18 @@ float4 SampleClamped(float2 pixel)
 
 // B10G11R11 keeps 6 mantissa bits in red and green and 5 in blue. Some GPUs,
 // M4 among them, truncate a store into it, and every pass of a layout
-// stores, which would darken a blur by up to 4% (9% in blue). Rounding to nearest here
-// (ties away from zero) leaves the store an exact value, whether the GPU
-// truncates or rounds. Values clamp to the format's range first, so infinity
-// and values that would round past its largest stay finite.
+// stores, which would darken a blur by up to 4% (9% in blue). Rounding to
+// nearest here leaves the store an exact value, whether the GPU truncates or
+// rounds. Ties go to even: reading packed values with power-of-two weights
+// lands many pixels exactly between two, and rounding those up would
+// brighten a blur. Values clamp to the format's range first, so infinity and
+// values that would round past its largest stay finite.
 float4 PassOutput(float4 value)
 {
 #if defined(STEPLESS_PACKED_OUTPUT)
     value.rgb = clamp(value.rgb, 0, float3(65024, 65024, 64512));
-    uint3 bits = asuint(value.rgb) + uint3(1u << 16, 1u << 16, 1u << 17);
+    uint3 bits = asuint(value.rgb);
+    bits += uint3(0xFFFFu, 0xFFFFu, 0x1FFFFu) + ((bits >> uint3(17, 17, 18)) & 1u);
     value.rgb = asfloat(bits & uint3(0xFFFE0000u, 0xFFFE0000u, 0xFFFC0000u));
 #endif
     return value;

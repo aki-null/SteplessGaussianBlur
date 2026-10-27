@@ -130,6 +130,8 @@ namespace SteplessGaussianBlur.Tests
             internal float MeanError = BlurGpuTests.MeanError;
             internal Color[] InputPixels;
             internal GraphicsFormat Format = GraphicsFormat.R32G32B32A32_SFloat;
+            // With WriteToDestination: the destination's format, if not Format.
+            internal GraphicsFormat? DestinationFormat;
             // Recorded after the main blur; its result is unused and culled.
             internal float? AdditionalStrength;
             internal Vector2Int ViewportSize;
@@ -208,7 +210,8 @@ namespace SteplessGaussianBlur.Tests
             }
             RenderTexture source = CreateTarget(c.Width, c.Height, format: c.Format,
                 msaaSamples: c.MsaaSamples, slices: c.Slices);
-            RenderTexture destination = CreateTarget(layout.Size.x, layout.Size.y, format: c.Format, slices: c.Slices);
+            RenderTexture destination = CreateTarget(layout.Size.x, layout.Size.y,
+                format: c.DestinationFormat ?? c.Format, slices: c.Slices);
             bool half = c.Format == GraphicsFormat.R16G16B16A16_SFloat;
             // Float uploads copy; other formats convert in a Blit.
             bool copy = c.MsaaSamples == 1 && (half || c.Format == GraphicsFormat.R32G32B32A32_SFloat);
@@ -363,7 +366,7 @@ namespace SteplessGaussianBlur.Tests
             // Some formats, such as 8-bit on Metal, lack readback support; read a float copy.
             bool convert = !SystemInfo.IsFormatSupported(c.Format, GraphicsFormatUsage.ReadPixels);
             RenderTexture resultReadback = destination;
-            if (convert)
+            if (convert || !SystemInfo.IsFormatSupported(destination.graphicsFormat, GraphicsFormatUsage.ReadPixels))
             {
                 resultReadback = CreateTarget(destination.width, destination.height);
                 Graphics.Blit(destination, resultReadback);
