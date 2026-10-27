@@ -12,9 +12,10 @@ namespace SteplessGaussianBlur.Tests
     {
         // The largest scale grows with sigma; it then halves until it
         // divides both sides.
-        [TestCase(4.49f, 1920, 1080, 1)]
-        [TestCase(4.5f, 1920, 1080, 2)]
-        [TestCase(4.5f, 1921, 1080, 1)]
+        [TestCase(2.99f, 1920, 1080, 1)]
+        [TestCase(3f, 1920, 1080, 2)]
+        [TestCase(3f, 1921, 1080, 1)]
+        [TestCase(4.49f, 1920, 1080, 2)]
         [TestCase(16.09f, 1920, 1080, 2)]
         [TestCase(16.1f, 1920, 1080, 4)]
         [TestCase(16.1f, 1170, 2532, 2)]
@@ -45,8 +46,38 @@ namespace SteplessGaussianBlur.Tests
         {
             OutputSize reduced = Layout(new Vector2Int(1920, 1080), 30);
             Assert.That((reduced.Size, reduced.Scale), Is.EqualTo((new Vector2Int(480, 270), 4)));
-            Assert.That(Layout(new Vector2Int(1920, 1080), 3).Scale, Is.EqualTo(1));
+            Assert.That(Layout(new Vector2Int(1920, 1080), 2.9f).Scale, Is.EqualTo(1));
             Assert.That(Layout(new Vector2Int(4, 4), 10).Scale, Is.EqualTo(2));
+        }
+
+        // Where a reduced output keeps full size, its last Up is the reduced
+        // layout's, not Record's: blending to bilinear at sigma 2.9, bilinear
+        // at 3.5 on sides no scale divides.
+        [Test]
+        public void FullSizeReducedOutputsUseTheReducedUp()
+        {
+            BlurSourceTests.WithGraph((blur, graph) =>
+            {
+                var passes = new RecordedPasses(blur);
+                TextureHandle reduced = blur.RecordReduced(graph, graph.CreateTexture(Destination(64, 48)), 2.9f);
+                TextureDesc output = graph.GetTextureDesc(reduced);
+                Assert.That((output.width, output.height), Is.EqualTo((64, 48)));
+                var workspace = new SmallKernel.Workspace();
+                SmallKernel.OuterUpsample(workspace, SmallKernel.OuterUpsampleBilinear(2.9, reduced: true));
+                Vector4[] last = passes.Taps(passes.Count - 1);
+                for (int k = 0; k < 4; k++)
+                {
+                    Assert.That(last[k].x, Is.EqualTo((float)BlurMath.Snap(workspace.outerTaps[k].x)), $"tap {k}");
+                    Assert.That(last[k].y, Is.EqualTo(workspace.outerTaps[k].y), $"tap {k} weight");
+                }
+
+                int recorded = passes.Count;
+                blur.RecordReduced(graph, graph.CreateTexture(Destination(65, 49)), 3.5f);
+                Assert.That(passes.FetchCount(passes.Count - 1), Is.EqualTo(1), "bilinear Up");
+                Assert.That(passes.Count - recorded, Is.GreaterThan(1));
+                blur.Record(graph, graph.CreateTexture(Destination(65, 49)), 3.5f);
+                Assert.That(passes.FetchCount(passes.Count - 1), Is.EqualTo(2), "Record's cubic Up");
+            });
         }
 
         static OutputSize Layout(Vector2Int size, BlurStrength strength)

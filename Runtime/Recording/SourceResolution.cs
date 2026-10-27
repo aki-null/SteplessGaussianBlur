@@ -98,7 +98,7 @@ namespace SteplessGaussianBlur
             }
 
             var context = new RecordContext(handle, sourceTexture, descriptor, allocation, viewport, textureView,
-                destination, destinationDescriptor, format, size.Scale);
+                destination, destinationDescriptor, format, size);
             TextureHandle result = RecordLayout(graph, context, sigma);
             if (ownResult && result.Equals(handle))
                 result = RecordIdentity(graph, context);

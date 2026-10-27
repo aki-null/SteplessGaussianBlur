@@ -9,8 +9,9 @@ namespace SteplessGaussianBlur
 {
     // Passes of sigma below 16.1; their chain and coefficients are in
     // Kernels/SmallKernel.cs and Kernels/FittedDownUp.cs, shaders in
-    // Shaders/Small.hlsl. From sigma 4.5 the outermost Up is bilinear, and a
-    // reduced output ends before it.
+    // Shaders/Small.hlsl. From sigma 4.5 the outermost Up is bilinear; a
+    // reduced output's is from 3, and where a scale divides both sides the
+    // output ends before it.
     public sealed partial class GaussianBlur
     {
         static readonly int TapsId = Shader.PropertyToID("_Taps");
@@ -35,7 +36,7 @@ namespace SteplessGaussianBlur
                     halo: 0, variance, Crossfade.IntoDownUp, FinalTarget(graph, context, "Stepless Gaussian"));
             if (variance < FittedDownUp.End)
                 return RecordFittedDownUp(graph, context, variance);
-            double bilinear = SmallKernel.OuterUpsampleBilinear(sigma);
+            double bilinear = SmallKernel.OuterUpsampleBilinear(sigma, context.reduced);
             double upVariance = SmallKernel.OuterUpsample(kernel, bilinear);
             double levelVariance = SmallKernel.OuterLevelVariance(variance, upVariance);
             if (context.outputScale == 1)
@@ -52,7 +53,8 @@ namespace SteplessGaussianBlur
         }
 
         /// <summary>A reduced output's scale: 2 once the outermost Up is bilinear, which the viewer's sampling replaces.</summary>
-        static int SmallReducedScale(float sigma) => SmallKernel.OuterUpsampleBilinear(sigma) == 1 ? 2 : 1;
+        static int SmallReducedScale(float sigma) =>
+            SmallKernel.OuterUpsampleBilinear(sigma, reduced: true) == 1 ? 2 : 1;
 
         /// <summary>Sigma 1.62 to 2.40: Down, a half-res Gaussian from 1.72, Up.</summary>
         TextureHandle RecordFittedDownUp(RenderGraph graph, in RecordContext context, double variance)
@@ -134,21 +136,21 @@ namespace SteplessGaussianBlur
             bool direct = output.IsValid() && !separable;
             TextureHandle result = direct ? output : CreateTarget(graph, context, width + 2 * halo, height + 2 * halo,
                 name, fullResolution: fullResolution);
-            RecordSmallPass(graph, context, source, result, separable ? AxisPass(count, false, crossfade) : Gaussian2DPass(count),
+            RecordSmallPass(graph, context, source, result, separable ? AxisPass(count, false) : Gaussian2DPass(count),
                 kernel.taps, count, name, sourceHalo: halo, targetHalo: direct ? 0 : halo);
             if (!separable)
                 return result;
 
             TextureHandle vertical = output.IsValid() ? output :
                 CreateTarget(graph, context, width + 2 * halo, height + 2 * halo, "Stepless Gaussian Y");
-            return RecordSmallPass(graph, context, result, vertical, AxisPass(count, true, crossfade), kernel.taps, count,
+            return RecordSmallPass(graph, context, result, vertical, AxisPass(count, true), kernel.taps, count,
                 "Stepless Gaussian Y", sourceHalo: halo, targetHalo: output.IsValid() ? 0 : halo);
         }
 
         // RecordGaussian goes separable from four fetches per axis.
         static ShaderPass Gaussian2DPass(int count) => count <= 2 ? ShaderPass.Gaussian2D2 : ShaderPass.Gaussian2D3;
 
-        internal static ShaderPass AxisPass(int count, bool vertical, Crossfade crossfade)
+        internal static ShaderPass AxisPass(int count, bool vertical)
         {
             // Unrolled passes pad shorter rows with zero-weight taps; unrolling
             // six to eight fetches made sigma 3-3.8 blurs 7-10% faster on M4.
@@ -156,9 +158,14 @@ namespace SteplessGaussianBlur
                 return vertical ? ShaderPass.Vertical5 : ShaderPass.Horizontal5;
             if (count >= 6 && count <= 8)
                 return vertical ? ShaderPass.Vertical8 : ShaderPass.Horizontal8;
-            // High's full-res rows reach twelve fetches; looped, sigma 2.2-2.3
-            // took up to 1.6x as long on M4.
-            if (count >= 9 && count <= 12 && crossfade == Crossfade.IntoFirstLevel)
+            // Pyramid crossfades take ten fetches, High's full-res rows up to
+            // twelve. These tiers fit those counts, since padding costs every
+            // GPU. Against the loop, ten-fetch rows ran about 20% faster on M4,
+            // 11-21% on iPhone 17 and 2-5% on Adreno 830, and the same on
+            // Mali-G68.
+            if (count >= 9 && count <= 10)
+                return vertical ? ShaderPass.Vertical10 : ShaderPass.Horizontal10;
+            if (count >= 11 && count <= 12)
                 return vertical ? ShaderPass.Vertical12 : ShaderPass.Horizontal12;
             return vertical ? ShaderPass.Vertical : ShaderPass.Horizontal;
         }
@@ -166,19 +173,12 @@ namespace SteplessGaussianBlur
         static bool IsGaussian2DPass(ShaderPass pass)
             => pass == ShaderPass.Gaussian2D2 || pass == ShaderPass.Gaussian2D3;
 
-        // Crossfades that change AxisPass's choice.
-        static readonly Crossfade[] AxisPassCrossfades = { Crossfade.None, Crossfade.IntoFirstLevel };
-
         // Any pass Gaussian2DPass or AxisPass selects.
         internal static bool IsGaussianPass(ShaderPass pass)
         {
             for (int count = 1; count <= SmallKernel.MaxFetches; count++)
-            {
-                foreach (Crossfade crossfade in AxisPassCrossfades)
-                    if (pass == Gaussian2DPass(count) || pass == AxisPass(count, false, crossfade) ||
-                        pass == AxisPass(count, true, crossfade))
-                        return true;
-            }
+                if (pass == Gaussian2DPass(count) || pass == AxisPass(count, false) || pass == AxisPass(count, true))
+                    return true;
             return false;
         }
 

@@ -206,7 +206,7 @@ namespace SteplessGaussianBlur.Tests
                 var pixels = new Color[active.x * active.y];
                 for (int y = 0; y < active.y; y++)
                     Array.Copy(sourcePixels, eye * c.Width * c.Height + y * c.Width, pixels, y * active.x, active.x);
-                Array.Copy(BlurGpuReference.Blur(pixels, active.x, active.y, sigma, scale, c.Quality), 0,
+                Array.Copy(BlurGpuReference.Blur(pixels, active.x, active.y, sigma, scale, c.Quality, c.Reduced), 0,
                     expected, eye * outputSize.x * outputSize.y, outputSize.x * outputSize.y);
             }
             RenderTexture source = CreateTarget(c.Width, c.Height, format: c.Format,

@@ -67,7 +67,7 @@ namespace SteplessGaussianBlur
         internal GaussianBlur.PendingBlur Pending;
 
         /// <param name="fullSize">
-        /// Keep the source size. By default, from sigma 4.5, the texture shrinks
+        /// Keep the source size. By default, from sigma 3, the texture shrinks
         /// by the largest power of two up to the blur's reduction that divides
         /// both source sides, and the bilinear sampling that displays it
         /// finishes the blur. Use full size to read pixels or to sample

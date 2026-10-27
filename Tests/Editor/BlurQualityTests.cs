@@ -93,16 +93,17 @@ namespace SteplessGaussianBlur.Tests
             return shifted;
         }
 
-        // High's rows of nine to twelve fetches run unrolled; other rows keep
-        // the passes Fast records.
-        [TestCase(9)]
-        [TestCase(12)]
-        public void HighUsesTwelveFetchPassesFrom9To12(int count)
+        // Rows of nine or ten fetches (pyramid crossfades, High) run an
+        // exact ten-fetch pass, eleven or twelve the twelve-fetch pass.
+        [TestCase(9, "Horizontal10")]
+        [TestCase(10, "Horizontal10")]
+        [TestCase(11, "Horizontal12")]
+        [TestCase(12, "Horizontal12")]
+        public void RowsOf9To12RunExactUnrolledPasses(int count, string pass)
         {
-            Assert.That(GaussianBlur.AxisPass(count, false, SmallKernel.Crossfade.IntoFirstLevel),
-                Is.EqualTo(GaussianBlur.ShaderPass.Horizontal12));
-            Assert.That(GaussianBlur.AxisPass(count, true, SmallKernel.Crossfade.IntoFirstLevel),
-                Is.EqualTo(GaussianBlur.ShaderPass.Vertical12));
+            Assert.That(GaussianBlur.AxisPass(count, false), Is.EqualTo(Enum.Parse<GaussianBlur.ShaderPass>(pass)));
+            Assert.That(GaussianBlur.AxisPass(count, true),
+                Is.EqualTo(Enum.Parse<GaussianBlur.ShaderPass>(pass.Replace("Horizontal", "Vertical"))));
         }
 
         // RecordSmallPass asks this for every draw; recording must not allocate.
@@ -118,17 +119,16 @@ namespace SteplessGaussianBlur.Tests
                     GaussianBlur.IsGaussianPass(pass);
             }, !new AllocatingGCMemory());
             Assert.That(GaussianBlur.IsGaussianPass(GaussianBlur.ShaderPass.Horizontal12), Is.True);
+            Assert.That(GaussianBlur.IsGaussianPass(GaussianBlur.ShaderPass.Vertical10), Is.True);
             Assert.That(GaussianBlur.IsGaussianPass(GaussianBlur.ShaderPass.Down), Is.False);
         }
 
-        [TestCase(8, "IntoFirstLevel", "Horizontal8")]
-        [TestCase(13, "IntoFirstLevel", "Horizontal")]
-        [TestCase(9, "None", "Horizontal")]
-        [TestCase(12, "IntoNextLevel", "Horizontal")]
-        public void OtherRowsKeepTheirPasses(int count, string crossfade, string pass)
+        [TestCase(5, "Horizontal5")]
+        [TestCase(8, "Horizontal8")]
+        [TestCase(13, "Horizontal")]
+        public void OtherRowsKeepTheirPasses(int count, string pass)
         {
-            Assert.That(GaussianBlur.AxisPass(count, false, Enum.Parse<SmallKernel.Crossfade>(crossfade)),
-                Is.EqualTo(Enum.Parse<GaussianBlur.ShaderPass>(pass)));
+            Assert.That(GaussianBlur.AxisPass(count, false), Is.EqualTo(Enum.Parse<GaussianBlur.ShaderPass>(pass)));
         }
 
         [TestCase(2.41f)]
@@ -160,10 +160,10 @@ namespace SteplessGaussianBlur.Tests
             Assert.That(recordings[1], Is.Not.EqualTo(recordings[0]));
         }
 
-        // Below sigma 4.5 a reduced output keeps full size, so High's
-        // reduced output is its full-res result.
+        // Below sigma 2.75 a reduced output is Record's, so High's reduced
+        // output is its full-res result.
         [Test]
-        public void ReducedHighKeepsFullSizeBelow45()
+        public void ReducedHighKeepsFullSizeBelow275()
         {
             BlurSourceTests.WithGraph((blur, graph) =>
             {

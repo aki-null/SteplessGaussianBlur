@@ -22,12 +22,13 @@ namespace SteplessGaussianBlur.Tests
     {
         /// <summary>Response to a unit point at <paramref name="point"/> of a row of <paramref name="length"/> texels.</summary>
         /// <param name="outputScale">1, or a reduced output's scale, which <see cref="View"/> then magnifies.</param>
+        /// <param name="reduced">A reduced output, which <paramref name="outputScale"/> above 1 implies.</param>
         internal static double[] Respond(float sigma, int length, int point, int outputScale = 1,
-            BlurQuality quality = BlurQuality.Fast)
+            BlurQuality quality = BlurQuality.Fast, bool reduced = false)
         {
             var source = new double[length];
             source[point] = 1;
-            return Run(sigma, source, outputScale, quality);
+            return Run(sigma, source, outputScale, quality, reduced);
         }
 
         /// <summary>Runs the layout of <paramref name="sigma"/> on one row, at full resolution.</summary>
@@ -36,13 +37,13 @@ namespace SteplessGaussianBlur.Tests
         /// <see cref="View"/> samples it back to full resolution.
         /// </param>
         internal static double[] Run(float sigma, double[] source, int outputScale = 1,
-            BlurQuality quality = BlurQuality.Fast)
+            BlurQuality quality = BlurQuality.Fast, bool reduced = false)
         {
-            double[] output = RunOutput(sigma, source, outputScale, quality);
+            double[] output = RunOutput(sigma, source, outputScale, quality, reduced || outputScale > 1);
             return outputScale == 1 ? output : View(output, outputScale, source.Length);
         }
 
-        static double[] RunOutput(float sigma, double[] source, int outputScale, BlurQuality quality)
+        static double[] RunOutput(float sigma, double[] source, int outputScale, BlurQuality quality, bool reduced)
         {
             if (sigma >= TransitionKernel.EndSigma)
                 return Wide(sigma, source, outputScale);
@@ -51,7 +52,7 @@ namespace SteplessGaussianBlur.Tests
             double variance = BlurMath.RequestedVariance(sigma);
             if (variance < 1e-12)
                 return (double[])source.Clone();
-            return Small(sigma, variance, source, outputScale, quality);
+            return Small(sigma, variance, source, outputScale, quality, reduced);
         }
 
         /// <summary>
@@ -102,7 +103,8 @@ namespace SteplessGaussianBlur.Tests
 
         static readonly SmallKernel.Workspace workspace = new SmallKernel.Workspace();
 
-        static double[] Small(float sigma, double variance, double[] source, int outputScale, BlurQuality quality)
+        static double[] Small(float sigma, double variance, double[] source, int outputScale, BlurQuality quality,
+            bool reduced)
         {
             if (quality == BlurQuality.High && variance < FittedDownUp.End)
                 return Rows(source, variance, Crossfade.IntoFirstLevel);
@@ -119,7 +121,7 @@ namespace SteplessGaussianBlur.Tests
                 downUp.PackUp(taps);
                 return Up(half, taps, source.Length);
             }
-            double bilinear = SmallKernel.OuterUpsampleBilinear(sigma);
+            double bilinear = SmallKernel.OuterUpsampleBilinear(sigma, reduced);
             double upVariance = SmallKernel.OuterUpsample(workspace, bilinear);
             return PyramidLevel(source, SmallKernel.OuterLevelVariance(variance, upVariance), bilinear, outputScale);
         }

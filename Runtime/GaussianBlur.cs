@@ -79,7 +79,7 @@ namespace SteplessGaussianBlur
         }
 
         /// <summary>
-        /// Records the blur into a new texture that is smaller from sigma 4.5:
+        /// Records the blur into a new texture that is smaller from sigma 3:
         /// by the largest power of two up to the blur's reduction that divides
         /// both sides of the active image, so an odd side keeps full size.
         /// Sample it bilinearly with UVs 0–1.

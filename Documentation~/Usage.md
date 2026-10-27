@@ -26,8 +26,10 @@ four corner colors.
 
 ## Reduced output
 
-From sigma 4.5, `RecordReduced` and a default `BlurTarget` return a
-texture up to 128 times smaller per side. The factor is a power of two
+From sigma 3, `RecordReduced` and a default `BlurTarget` return a
+texture up to 128 times smaller per side. From 2.75 they end with a
+bilinear upsample. Their error is 1.1% at sigma 3, against 0.3% for
+`Record`, and at most 1.3% near 4.1, against 1.0%. The factor is a power of two
 that divides both sides, so a 1170-pixel side allows only 2. A
 `BlurTarget`'s size changes with sigma. Bilinear sampling with UVs 0–1
 finishes the blur. In the outermost half texel the sampler's clamp

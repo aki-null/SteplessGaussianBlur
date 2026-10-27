@@ -148,6 +148,18 @@ float4 FragVertical8(Varyings input) : SV_Target
     return PassOutput(SeparableUnrolled(SmallPosition(input), true, 8));
 }
 
+float4 FragHorizontal10(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    return PassOutput(SeparableUnrolled(SmallPosition(input), false, 10));
+}
+
+float4 FragVertical10(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    return PassOutput(SeparableUnrolled(SmallPosition(input), true, 10));
+}
+
 float4 FragHorizontal12(Varyings input) : SV_Target
 {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
@@ -194,7 +206,7 @@ float4 FragUp(Varyings input) : SV_Target
     return PassOutput(sum);
 }
 
-// From sigma 4.5 the coarse image already carries nearly all blur.
+// From sigma 4.5 (3 for a reduced output) the coarse image carries nearly all blur.
 // One bilinear reconstruction replaces the outer four-fetch cubic row.
 // Alternating offsets preserve the same half-grid alignment as FragUp.
 float4 FragLinearUp(Varyings input) : SV_Target

@@ -297,18 +297,32 @@ namespace SteplessGaussianBlur
         // ---- Outermost upsample ------------------------------------------------------
         // From sigma 4.25 to 4.5 the outermost cubic up crossfades into
         // bilinear: one fetch instead of four at full resolution. The image is
-        // smooth enough by then. The blend starts after the first added
-        // level has crossfaded in (4.22), so it leaves that crossfade, the
-        // small layout's largest error from sigma 2.4, unchanged. Inner
-        // levels stay cubic.
+        // smooth enough by then. In a full-size output the blend starts after
+        // the first added level has crossfaded in (4.22), so it leaves that
+        // crossfade, the small layout's largest error from sigma 2.4,
+        // unchanged. Inner levels stay cubic.
+        //
+        // A reduced output blends over 2.75-3 instead, so from 3 its texture
+        // halves and the viewer's bilinear sampling replaces the Up. Its
+        // second level then crossfades over 3.86-4.15, with the bilinear Up.
+        // On M4 its error is 1.1% at 3 and peaks at 1.3% in that crossfade,
+        // against 0.3% and 1.0% at full size.
 
         internal const double OuterBilinearStartSigma = 4.25;
         internal const double OuterBilinearEndSigma = 4.5;
+        internal const double ReducedBilinearStartSigma = 2.75;
+        internal const double ReducedBilinearEndSigma = 3;
 
-        /// <summary>How far the outermost upsample has turned bilinear: 0 below sigma 4.25, 1 from 4.5.</summary>
-        internal static double OuterUpsampleBilinear(double sigma) =>
-            Smooth((sigma * sigma - OuterBilinearStartSigma * OuterBilinearStartSigma) /
-                (OuterBilinearEndSigma * OuterBilinearEndSigma - OuterBilinearStartSigma * OuterBilinearStartSigma));
+        /// <summary>
+        /// How far the outermost upsample has turned bilinear: 0 below sigma
+        /// 4.25, 1 from 4.5; for a reduced output, 0 below 2.75, 1 from 3.
+        /// </summary>
+        internal static double OuterUpsampleBilinear(double sigma, bool reduced = false)
+        {
+            double start = reduced ? ReducedBilinearStartSigma : OuterBilinearStartSigma;
+            double end = reduced ? ReducedBilinearEndSigma : OuterBilinearEndSigma;
+            return Smooth((sigma * sigma - start * start) / (end * end - start * start));
+        }
 
         /// <summary>
         /// The variance to give the outermost level when its Up adds

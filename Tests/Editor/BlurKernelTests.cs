@@ -47,6 +47,18 @@ namespace SteplessGaussianBlur.Tests
             return (low + high) * 0.5;
         }
 
+        // A reduced output's outermost Up turns bilinear over sigma 2.75-3,
+        // before its texture halves; a full-size output's waits until 4.25.
+        [Test]
+        public void ReducedOutputTurnsBilinearFrom275To3()
+        {
+            Assert.That(SmallKernel.OuterUpsampleBilinear(2.749, reduced: true), Is.EqualTo(0));
+            Assert.That(SmallKernel.OuterUpsampleBilinear(2.875, reduced: true), Is.InRange(0.3, 0.7));
+            Assert.That(SmallKernel.OuterUpsampleBilinear(3, reduced: true), Is.EqualTo(1));
+            Assert.That(SmallKernel.OuterUpsampleBilinear(16.09, reduced: true), Is.EqualTo(1));
+            Assert.That(SmallKernel.OuterUpsampleBilinear(3), Is.EqualTo(0));
+        }
+
         // RecordSmallPass uploads each Gaussian tap's even and odd phase in one
         // float4, with offsets snapped to the sampler grid.
         [TestCase(0.8f)] // One 2D pass.
@@ -123,14 +135,17 @@ namespace SteplessGaussianBlur.Tests
                 colorFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat
             };
 
-        [TestCase(4.25)]
-        [TestCase(4.375)]
-        [TestCase(4.5)]
-        [TestCase(16.09)]
-        public void OuterReconstructionPreservesMassCenterAndBudget(double sigma)
+        [TestCase(4.25, false)]
+        [TestCase(4.375, false)]
+        [TestCase(4.5, false)]
+        [TestCase(16.09, false)]
+        [TestCase(2.75, true)]
+        [TestCase(2.875, true)]
+        [TestCase(3.0, true)]
+        public void OuterReconstructionPreservesMassCenterAndBudget(double sigma, bool reduced)
         {
             var workspace = new SmallKernel.Workspace();
-            double blend = SmallKernel.OuterUpsampleBilinear(sigma);
+            double blend = SmallKernel.OuterUpsampleBilinear(sigma, reduced);
             double reported = SmallKernel.OuterUpsample(workspace, blend);
             double variance = 0;
             for (int phase = 0; phase < 2; phase++)

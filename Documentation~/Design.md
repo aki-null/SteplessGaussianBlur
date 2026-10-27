@@ -56,13 +56,15 @@ summing absolute differences, worst at sigma 1.4–2.3
   fetches per axis runs as one 2D pass. From four it runs as separate X
   and Y passes, which measured 23% faster on M4.
 - While fading in a pyramid level, the Gaussian is always X then Y.
+- X and Y rows of up to 5, 8, 10 or 12 fetches run unrolled passes;
+  longer rows loop. Late in a level's fade, rows take 10. Looped, those rows took
+  up to 1.3 times as long on M4 and iPhone 17.
 - In the full-resolution Gaussian, the switch to X then Y is at sigma
   0.75.
 - From 1.46 to 1.62 the Gaussian fades in the fitted down/up pair.
 - With `BlurQuality.High` the Gaussian runs to 2.40 with its full taper
   and never uses the fitted pair. From 2.24 to 2.40 it fades in the first
-  pyramid level. Its rows of nine to twelve fetches run an unrolled
-  twelve-fetch pass; looped, they took up to 1.6 times as long on M4.
+  pyramid level.
 
 ## Fitted down/up pair (sigma 1.62–2.40)
 
@@ -96,7 +98,8 @@ slightly off. Below 1.72 the down's outer weights correct it. Over
 
 - Each level is a 6-tap binomial 2x down and a 2x cubic B-spline up,
   except the outermost up below.
-- A second level fades in over sigma 3.94–4.22, a third over 8.00–8.55.
+- A second level fades in over sigma 3.94–4.22 (3.86–4.15 in a reduced
+  output), a third over 8.00–8.55.
 - From 4.25 to 4.5 the outermost up blends from cubic to bilinear: one
   fetch per pixel instead of four.
 
@@ -176,12 +179,13 @@ Doublings past sigma 560 reuse 560's fit. The largest remaining jump is at
 
 `RecordReduced` skips the last bilinear up and returns a texture at 1/R
 resolution. The caller does the skipped upscale by sampling it bilinearly.
-R is the skipped up's scale factor: 2 in the pyramid from sigma 4.5, 4 in
-the transition, pitch/4 (at most 128) in the wide layout. Below 4.5 the
-outermost up is not fully bilinear, so R is 1.
+R is the skipped up's scale factor: 2 in the pyramid from sigma 3, 4 in
+the transition, pitch/4 (at most 128) in the wide layout. A reduced
+output's outermost up blends from cubic to bilinear over 2.75–3, instead
+of `Record`'s 4.25–4.5, so R is 1 below 3.
 
 R is halved until it divides both image sides. When the cap or halving
-lowers R, the transition and wide layouts still run a bilinear up, to 1/R.
+lowers R, the layout still runs the reduced output's bilinear up, to 1/R.
 The variance budget counts the sampler's upscale in place of the skipped
 pass.
 
