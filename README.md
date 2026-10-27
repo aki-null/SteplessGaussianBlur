@@ -205,11 +205,12 @@ Released under the [MIT License](LICENSE).
 Marius Bjørge introduced the [Dual filter][dual-blur] (here "Dual Blur",
 also called Dual Kawase), building on Masaki Kawase's blur ("Frame Buffer
 Postprocessing Effects in DOUBLE-S.T.E.A.L (Wreckless)", GDC 2003). The
-benchmarks compare against [Skia][skia]'s GPU blur and Apple's
-[MPSImageGaussianBlur][mps]. For interactive comparisons of blur
-techniques, see Wladislav Artsimovich's
+benchmarks compare against [Skia][skia]'s GPU blur, Aras Pranckevičius's
+[Smol blur][smol] and Apple's [MPSImageGaussianBlur][mps]. For
+interactive comparisons of blur techniques, see Wladislav Artsimovich's
 [Video Game Blurs](https://blog.frost.kiwi/dual-kawase/).
 
 [dual-blur]: https://community.arm.com/cfs-file/__key/communityserver-blogs-components-weblogfiles/00-00-00-20-66/siggraph2015_2D00_mmg_2D00_marius_2D00_notes.pdf "Marius Bjørge, Bandwidth-Efficient Rendering, SIGGRAPH 2015"
 [skia]: https://skia.org/ "Skia Graphics Library"
+[smol]: https://aras-p.info/blog/2026/10/01/Fast-blur-with-animated-radius/ "Aras Pranckevičius, Fast blur with animated radius"
 [mps]: https://developer.apple.com/documentation/metalperformanceshaders/mpsimagegaussianblur "MPSImageGaussianBlur"
